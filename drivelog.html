@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>DriveLog — Permit Tracker</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --blue: #2563eb; --blue-dk: #1d4ed8; --blue-lt: #dbeafe;
+      --green: #16a34a; --green-lt: #dcfce7;
+      --purple: #7c3aed; --purple-lt: #ede9fe;
+      --amber: #d97706; --amber-lt: #fef3c7;
+      --red: #dc2626; --red-lt: #fee2e2;
+      --bg: #f1f5f9; --card: #ffffff;
+      --text: #0f172a; --muted: #64748b; --border: #e2e8f0;
+      --radius: 14px; --shadow: 0 1px 4px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+      --nav-h: 60px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+    body { display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ── Header ── */
+    #header { background: var(--card); border-bottom: 1px solid var(--border); padding: 14px 20px 10px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    #header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: -.3px; }
+    #header h1 span { color: var(--blue); }
+    #live-badge { display: none; background: var(--red); color: #fff; font-size: .65rem; font-weight: 700; padding: 2px 7px; border-radius: 99px; letter-spacing: .5px; animation: pulse 1.4s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+    /* ── Bottom Nav ── */
+    #nav { display: flex; background: var(--card); border-top: 1px solid var(--border); flex-shrink: 0; }
+    .nav-btn { flex: 1; border: none; background: none; cursor: pointer; padding: 8px 4px 10px; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--muted); transition: color .15s; font-size: .65rem; font-weight: 600; letter-spacing: .2px; text-transform: uppercase; }
+    .nav-btn .icon { font-size: 1.4rem; line-height: 1; }
+    .nav-btn.active { color: var(--blue); }
+    .nav-btn.drive-btn.recording { color: var(--red); }
+
+    /* ── Main ── */
+    #main { flex: 1; overflow-y: auto; overflow-x: hidden; }
+    .view { display: none; min-height: 100%; }
+    .view.active { display: block; }
+    .padded { padding: 16px; }
+    .section-title { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 18px 0 8px; }
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px; }
+
+    /* ── Dashboard ── */
+    .stats-hero { display: flex; align-items: center; gap: 20px; }
+    .ring-wrap { position: relative; flex-shrink: 0; }
+    .ring-wrap .ring-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ring-wrap .ring-pct { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+    .ring-wrap .ring-sub { font-size: .65rem; color: var(--muted); margin-top: 2px; }
+    .hero-right { flex: 1; }
+    .hero-right h2 { font-size: 1.3rem; font-weight: 800; }
+    .hero-right .sub { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+    .mini-bar-wrap { margin-top: 12px; }
+    .mini-bar-label { display: flex; justify-content: space-between; font-size: .72rem; margin-bottom: 4px; }
+    .mini-bar-track { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; }
+    .mini-bar-fill { height: 100%; border-radius: 99px; transition: width .5s; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .stat-box { text-align: center; }
+    .stat-box .val { font-size: 1.25rem; font-weight: 800; }
+    .stat-box .lbl { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .session-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+    .session-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .session-row .s-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+    .s-day { background: var(--amber-lt); }
+    .s-night { background: var(--purple-lt); }
+    .session-row .s-info { flex: 1; min-width: 0; }
+    .session-row .s-title { font-weight: 600; font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .session-row .s-meta { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+    .session-row .s-dur { font-size: .85rem; font-weight: 700; color: var(--blue); flex-shrink: 0; }
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .empty-state .e-icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .start-fab { display: block; width: 100%; background: var(--blue); color: #fff; border: none; border-radius: var(--radius); padding: 15px; font-size: 1rem; font-weight: 700; cursor: pointer; text-align: center; margin-bottom: 12px; }
+    .start-fab:active { background: var(--blue-dk); }
+
+    /* ── Drive View ── */
+    #drive-view { display: flex; flex-direction: column; height: 100%; }
+    #drive-view.active { display: flex; }
+    #drive-map { flex: 1; min-height: 0; z-index: 0; }
+    #drive-panel { background: var(--card); border-top: 1px solid var(--border); padding: 14px 16px 16px; flex-shrink: 0; z-index: 10; }
+    #drive-pre { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px 20px; text-align: center; }
+    #drive-pre h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; }
+    #drive-pre p { color: var(--muted); font-size: .88rem; margin-bottom: 28px; line-height: 1.5; }
+    .btn-big { width: 100%; padding: 17px; font-size: 1.05rem; font-weight: 700; border: none; border-radius: var(--radius); cursor: pointer; }
+    .btn-start { background: var(--green); color: #fff; }
+    .btn-stop { background: var(--red); color: #fff; }
+    .btn-big:active { opacity: .85; }
+    .drive-stats { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .ds-box { text-align: center; }
+    .ds-box .dv { font-size: 1.1rem; font-weight: 800; }
+    .ds-box .dl { font-size: .6rem; text-transform: uppercase; color: var(--muted); letter-spacing: .4px; }
+    .drive-meta { display: flex; gap: 8px; align-items: center; font-size: .78rem; color: var(--muted); margin-bottom: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .drive-meta span { overflow: hidden; text-overflow: ellipsis; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; background: var(--blue-lt); color: var(--blue); font-size: .65rem; font-weight: 700; padding: 3px 8px; border-radius: 99px; letter-spacing: .3px; flex-shrink: 0; }
+    .badge.night { background: var(--purple-lt); color: var(--purple); }
+    .badge.day { background: var(--amber-lt); color: var(--amber); }
+    #locate-btn { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: .78rem; cursor: pointer; color: var(--muted); margin-bottom: 14px; }
+
+    /* ── History ── */
+    .filter-bar { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px; }
+    .filter-chip { border: 1px solid var(--border); background: var(--card); border-radius: 99px; padding: 5px 13px; font-size: .75rem; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-weight: 500; }
+    .filter-chip.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+    /* ── Settings ── */
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: .78rem; font-weight: 600; margin-bottom: 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+    .form-group input, .form-group select { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: .92rem; background: var(--card); color: var(--text); outline: none; }
+    .form-group input:focus, .form-group select:focus { border-color: var(--blue); }
+    .req-display { display: flex; gap: 10px; margin-top: 8px; }
+    .req-box { flex: 1; background: var(--blue-lt); border-radius: 10px; padding: 10px; text-align: center; }
+    .req-box .rv { font-size: 1.4rem; font-weight: 800; color: var(--blue); }
+    .req-box .rl { font-size: .65rem; color: var(--blue); text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
+    .req-box.night { background: var(--purple-lt); }
+    .req-box.night .rv, .req-box.night .rl { color: var(--purple); }
+    .note-box { background: var(--amber-lt); border-radius: 10px; padding: 10px 12px; font-size: .78rem; color: var(--amber); margin-top: 8px; line-height: 1.5; }
+    .btn-row { display: flex; gap: 10px; }
+    .btn-outline { flex: 1; border: 1.5px solid var(--border); background: var(--card); border-radius: 10px; padding: 12px; font-size: .88rem; font-weight: 600; cursor: pointer; color: var(--text); }
+    .btn-outline:hover { border-color: var(--blue); color: var(--blue); }
+    .btn-danger { flex: 1; border: 1.5px solid var(--red); background: var(--card); border-radius: 10px; padding: 12px; font-size: .88rem; font-weight: 600; cursor: pointer; color: var(--red); }
+    .btn-save { width: 100%; background: var(--blue); color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: .95rem; font-weight: 700; cursor: pointer; margin-top: 8px; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+    .toggle { position: relative; width: 46px; height: 26px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 99px; cursor: pointer; transition: background .2s; }
+    .toggle-slider::before { content: ''; position: absolute; height: 20px; width: 20px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform .2s; }
+    .toggle input:checked + .toggle-slider { background: var(--blue); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+    /* ── Modal ── */
+    #modal { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.45); overflow-y: auto; }
+    #modal.open { display: block; }
+    .modal-card { background: var(--card); margin: 20px 14px 30px; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .modal-header { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+    .modal-header h3 { font-size: 1rem; font-weight: 700; }
+    .close-btn { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--muted); padding: 4px; line-height: 1; }
+    #detail-map { height: 220px; }
+    .modal-body { padding: 16px; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .detail-item { }
+    .detail-item .di-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+    .detail-item .di-val { font-size: .9rem; font-weight: 600; }
+    .notes-label { font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin: 14px 0 6px; }
+    #detail-notes { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: .88rem; min-height: 70px; resize: vertical; font-family: inherit; outline: none; }
+    #detail-notes:focus { border-color: var(--blue); }
+    .modal-actions { padding: 12px 16px 16px; display: flex; gap: 10px; border-top: 1px solid var(--border); }
+    .btn-del { flex: 1; border: 1.5px solid var(--red); color: var(--red); background: none; border-radius: 10px; padding: 11px; font-weight: 600; cursor: pointer; }
+    .btn-save-notes { flex: 2; background: var(--blue); color: #fff; border: none; border-radius: 10px; padding: 11px; font-weight: 600; cursor: pointer; }
+
+    /* ── Misc ── */
+    .chip { display: inline-flex; align-items: center; gap: 4px; background: var(--blue-lt); color: var(--blue); font-size: .65rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+    .chip.night { background: var(--purple-lt); color: var(--purple); }
+    .toast { position: fixed; bottom: calc(var(--nav-h) + 14px); left: 50%; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 10px 18px; border-radius: 99px; font-size: .82rem; font-weight: 500; z-index: 999; opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; }
+    .toast.show { opacity: 1; }
+    .leaflet-control-attribution { font-size: 9px !important; }
+    @media (max-width: 400px) { .drive-stats { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+
+<div id="header">
+  <h1>Drive<span>Log</span></h1>
+  <span id="live-badge">● REC</span>
+</div>
+
+<div id="main">
+  <!-- Dashboard -->
+  <div id="dashboard-view" class="view padded">
+    <div id="dash-content"></div>
+  </div>
+
+  <!-- Drive -->
+  <div id="drive-view" class="view">
+    <div id="drive-map"></div>
+    <div id="drive-panel"></div>
+  </div>
+
+  <!-- History -->
+  <div id="history-view" class="view padded">
+    <div id="history-content"></div>
+  </div>
+
+  <!-- Settings -->
+  <div id="settings-view" class="view padded">
+    <div id="settings-content"></div>
+  </div>
+</div>
+
+<nav id="nav">
+  <button class="nav-btn active" data-view="dashboard">
+    <span class="icon">📊</span>Progress
+  </button>
+  <button class="nav-btn drive-btn" data-view="drive">
+    <span class="icon">🚗</span>Drive
+  </button>
+  <button class="nav-btn" data-view="history">
+    <span class="icon">📋</span>History
+  </button>
+  <button class="nav-btn" data-view="settings">
+    <span class="icon">⚙️</span>Settings
+  </button>
+</nav>
+
+<div id="modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="modal-title">Session Detail</h3>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div id="detail-map"></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn-del" id="modal-del-btn">Delete</button>
+      <button class="btn-save-notes" id="modal-save-btn">Save Notes</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════
+// STATE REQUIREMENTS (source: IIHS + individual state DMVs)
+// ═══════════════════════════════════════════════════════
+const STATE_REQS = {
+  "AL":{ name:"Alabama",           total:50,  night:10 },
+  "AK":{ name:"Alaska",            total:40,  night:10,  note:"10 hrs must be at night or in inclement weather" },
+  "AZ":{ name:"Arizona",           total:30,  night:10 },
+  "AR":{ name:"Arkansas",          total:0,   night:0,   note:"No hour requirement — must hold permit 6 months with clean record" },
+  "CA":{ name:"California",        total:50,  night:10 },
+  "CO":{ name:"Colorado",          total:50,  night:10 },
+  "CT":{ name:"Connecticut",       total:40,  night:10 },
+  "DE":{ name:"Delaware",          total:50,  night:10 },
+  "DC":{ name:"District of Columbia", total:40, night:10 },
+  "FL":{ name:"Florida",           total:50,  night:10 },
+  "GA":{ name:"Georgia",           total:40,  night:6  },
+  "HI":{ name:"Hawaii",            total:50,  night:10 },
+  "ID":{ name:"Idaho",             total:50,  night:10 },
+  "IL":{ name:"Illinois",          total:50,  night:10 },
+  "IN":{ name:"Indiana",           total:50,  night:10 },
+  "IA":{ name:"Iowa",              total:20,  night:2  },
+  "KS":{ name:"Kansas",            total:50,  night:10,  note:"25 hrs needed for restricted license; 50 total (10 night) to remove all restrictions" },
+  "KY":{ name:"Kentucky",          total:60,  night:10 },
+  "LA":{ name:"Louisiana",         total:50,  night:15 },
+  "ME":{ name:"Maine",             total:70,  night:10 },
+  "MD":{ name:"Maryland",          total:60,  night:10 },
+  "MA":{ name:"Massachusetts",     total:40,  night:1,   note:"Night requirement is 30 minutes; total may reduce to 30 hrs with an approved skills program" },
+  "MI":{ name:"Michigan",          total:50,  night:10 },
+  "MN":{ name:"Minnesota",         total:50,  night:15,  note:"Total reduces to 40 hrs if parent completes state-approved awareness course" },
+  "MS":{ name:"Mississippi",       total:50,  night:0,   note:"Certified by parent affidavit; no specific night hour requirement stated" },
+  "MO":{ name:"Missouri",          total:40,  night:10 },
+  "MT":{ name:"Montana",           total:50,  night:10,  note:"75 hrs (15 night) if using parent-taught online-only course" },
+  "NE":{ name:"Nebraska",          total:50,  night:10 },
+  "NV":{ name:"Nevada",            total:50,  night:10 },
+  "NH":{ name:"New Hampshire",     total:40,  night:10 },
+  "NJ":{ name:"New Jersey",        total:50,  night:10,  note:"Hour requirement enacted Feb 1, 2025 (applies to permits issued on/after that date)" },
+  "NM":{ name:"New Mexico",        total:50,  night:10 },
+  "NY":{ name:"New York",          total:50,  night:15 },
+  "NC":{ name:"North Carolina",    total:60,  night:10,  note:"60 hrs (10 night) for Level 1→2; additional 12 hrs (6 night) for Level 2→3" },
+  "ND":{ name:"North Dakota",      total:50,  night:10 },
+  "OH":{ name:"Ohio",              total:50,  night:10 },
+  "OK":{ name:"Oklahoma",          total:50,  night:10 },
+  "OR":{ name:"Oregon",            total:50,  night:0,   note:"100 hrs required without driver ed; no separate night sub-requirement" },
+  "PA":{ name:"Pennsylvania",      total:65,  night:10,  note:"Also requires 5 hrs in inclement/poor weather" },
+  "RI":{ name:"Rhode Island",      total:50,  night:10 },
+  "SC":{ name:"South Carolina",    total:40,  night:10 },
+  "SD":{ name:"South Dakota",      total:50,  night:10,  note:"Also requires 10 hrs in inclement weather" },
+  "TN":{ name:"Tennessee",         total:50,  night:10 },
+  "TX":{ name:"Texas",             total:30,  night:10 },
+  "UT":{ name:"Utah",              total:40,  night:10 },
+  "VT":{ name:"Vermont",           total:40,  night:10 },
+  "VA":{ name:"Virginia",          total:45,  night:15 },
+  "WA":{ name:"Washington",        total:50,  night:10 },
+  "WV":{ name:"West Virginia",     total:50,  night:10 },
+  "WI":{ name:"Wisconsin",         total:50,  night:10 },
+  "WY":{ name:"Wyoming",           total:50,  night:10 },
+};
+
+const WX_DESC = {
+  0:"Clear sky", 1:"Mainly clear", 2:"Partly cloudy", 3:"Overcast",
+  45:"Foggy", 48:"Icy fog",
+  51:"Light drizzle", 53:"Drizzle", 55:"Heavy drizzle",
+  61:"Light rain", 63:"Rain", 65:"Heavy rain",
+  71:"Light snow", 73:"Snow", 75:"Heavy snow", 77:"Snow grains",
+  80:"Light showers", 81:"Showers", 82:"Heavy showers",
+  85:"Light snow showers", 86:"Heavy snow showers",
+  95:"Thunderstorm", 96:"Thunderstorm + hail", 99:"Thunderstorm + hail"
+};
+
+function wxEmoji(code) {
+  if (code === 0) return '☀️';
+  if (code <= 2) return '🌤️';
+  if (code === 3) return '☁️';
+  if (code <= 48) return '🌫️';
+  if (code <= 55) return '🌦️';
+  if (code <= 65) return '🌧️';
+  if (code <= 77) return '🌨️';
+  if (code <= 82) return '🌧️';
+  if (code <= 86) return '🌨️';
+  return '⛈️';
+}
+
+// ═══════════════════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════════════════
+let settings = loadSettings();
+let sessions = loadSessions();
+let activeSession = null;
+let currentView = 'dashboard';
+let driveMap = null, drivePolyline = null, drivePosMarker = null;
+let detailMap = null;
+let driveTimerInterval = null;
+let gpsWatchId = null;
+let activeSessionId = null; // for modal
+let historyFilter = 'all';
+
+// ═══════════════════════════════════════════════════════
+// PERSISTENCE
+// ═══════════════════════════════════════════════════════
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem('dl_settings')) || defaultSettings(); }
+  catch { return defaultSettings(); }
+}
+function defaultSettings() {
+  return { driverName: '', state: 'CA', customTotal: null, customNight: null };
+}
+function saveSettings() { localStorage.setItem('dl_settings', JSON.stringify(settings)); }
+
+function loadSessions() {
+  try { return JSON.parse(localStorage.getItem('dl_sessions')) || []; }
+  catch { return []; }
+}
+function saveSessions() { localStorage.setItem('dl_sessions', JSON.stringify(sessions)); }
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+// ═══════════════════════════════════════════════════════
+// REQUIREMENTS & STATS
+// ═══════════════════════════════════════════════════════
+function getReqs() {
+  const st = STATE_REQS[settings.state] || STATE_REQS['CA'];
+  return {
+    total: settings.customTotal != null ? +settings.customTotal : st.total,
+    night: settings.customNight != null ? +settings.customNight : st.night,
+    note: st.note || null,
+    stateName: st.name
+  };
+}
+
+function getTotals() {
+  let totalMin = 0, nightMin = 0, distMi = 0;
+  for (const s of sessions) {
+    totalMin += s.duration || 0;
+    if (s.isNight) nightMin += s.duration || 0;
+    distMi += s.distance || 0;
+  }
+  return { totalHours: totalMin / 60, nightHours: nightMin / 60, sessions: sessions.length, distMi };
+}
+
+// ═══════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => navigate(btn.dataset.view));
+});
+
+function navigate(view) {
+  currentView = view;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === view);
+  });
+  document.getElementById(view + '-view').classList.add('active');
+  if (view === 'dashboard') renderDashboard();
+  else if (view === 'drive') renderDrive();
+  else if (view === 'history') renderHistory();
+  else if (view === 'settings') renderSettings();
+}
+
+// ═══════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════
+function renderDashboard() {
+  const reqs = getReqs();
+  const totals = getTotals();
+  const totalPct = reqs.total > 0 ? Math.min(totals.totalHours / reqs.total, 1) : 1;
+  const nightPct = reqs.night > 0 ? Math.min(totals.nightHours / reqs.night, 1) : 1;
+  const driverLabel = settings.driverName ? settings.driverName + "'s Log" : 'My Driving Log';
+  const recent = [...sessions].sort((a,b) => new Date(b.startTime)-new Date(a.startTime)).slice(0,3);
+
+  document.getElementById('dash-content').innerHTML = `
+    ${activeSession ? `<button class="start-fab btn-big" style="background:var(--red)" onclick="navigate('drive')">● Drive in progress — tap to view</button>` : ''}
+    <div class="card">
+      <div class="stats-hero">
+        <div class="ring-wrap">
+          ${progressRing(totalPct, reqs.total === 0 ? '#64748b' : '#2563eb', 110, 11)}
+          <div class="ring-label">
+            <div class="ring-pct">${reqs.total > 0 ? Math.round(totalPct*100)+'%' : '—'}</div>
+            <div class="ring-sub">done</div>
+          </div>
+        </div>
+        <div class="hero-right">
+          <div class="sub">${driverLabel}</div>
+          <h2>${totals.totalHours.toFixed(1)} <small style="font-size:.8rem;font-weight:500;color:var(--muted)">/ ${reqs.total > 0 ? reqs.total : '?'} hrs</small></h2>
+          <div style="font-size:.78rem;color:var(--muted);margin-top:2px">${reqs.stateName}</div>
+          ${reqs.total > 0 ? `
+            <div class="mini-bar-wrap" style="margin-top:10px">
+              <div class="mini-bar-label">
+                <span>🌙 Night ${totals.nightHours.toFixed(1)}h / ${reqs.night}h</span>
+                <span style="color:var(--purple)">${reqs.night > 0 ? Math.round(nightPct*100)+'%' : '—'}</span>
+              </div>
+              <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${nightPct*100}%;background:var(--purple)"></div></div>
+            </div>
+            <div class="mini-bar-wrap" style="margin-top:8px">
+              <div class="mini-bar-label">
+                <span>☀️ Day ${(totals.totalHours - totals.nightHours).toFixed(1)}h</span>
+              </div>
+              <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${Math.min((totals.totalHours-totals.nightHours)/reqs.total,1)*100}%;background:var(--amber)"></div></div>
+            </div>
+          ` : '<div style="font-size:.75rem;color:var(--muted);margin-top:8px">No hour requirement for this state</div>'}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="stat-grid">
+        <div class="stat-box"><div class="val">${totals.sessions}</div><div class="lbl">Sessions</div></div>
+        <div class="stat-box"><div class="val">${totals.distMi.toFixed(1)}</div><div class="lbl">Miles</div></div>
+        <div class="stat-box"><div class="val">${totals.sessions > 0 ? fmtDur(totals.totalHours*60/totals.sessions) : '—'}</div><div class="lbl">Avg</div></div>
+      </div>
+    </div>
+    ${!activeSession ? `<button class="start-fab" onclick="navigate('drive')">Start a Drive</button>` : ''}
+    <div class="section-title">Recent Sessions</div>
+    ${recent.length ? `<div class="card">${recent.map(sessionRow).join('')}</div>` : `<div class="empty-state"><div class="e-icon">🚗</div><div>No sessions yet.<br>Tap <b>Drive</b> to log your first drive.</div></div>`}
+  `;
+  document.querySelectorAll('.session-row').forEach(r => {
+    r.addEventListener('click', () => showSessionDetail(r.dataset.id));
+  });
+}
+
+function sessionRow(s) {
+  const addr = s.startLocation?.city || s.startLocation?.address || 'Unknown location';
+  return `<div class="session-row" data-id="${s.id}">
+    <div class="s-icon ${s.isNight ? 's-night' : 's-day'}">${s.isNight ? '🌙' : '☀️'}</div>
+    <div class="s-info">
+      <div class="s-title">${addr}</div>
+      <div class="s-meta">${fmtDate(s.startTime)} · ${fmtTime(s.startTime)} · ${s.weather ? wxEmoji(s.weather.code) + ' ' + s.weather.temp + '°F' : ''}</div>
+    </div>
+    <div class="s-dur">${fmtDur(s.duration)}</div>
+  </div>`;
+}
+
+function progressRing(pct, color, size=110, stroke=11) {
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - pct);
+  return `<svg width="${size}" height="${size}" style="transform:rotate(-90deg)">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#e2e8f0" stroke-width="${stroke}"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
+      stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}"
+      stroke-linecap="round"/>
+  </svg>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// DRIVE VIEW
+// ═══════════════════════════════════════════════════════
+function renderDrive() {
+  const panel = document.getElementById('drive-panel');
+  const mapDiv = document.getElementById('drive-map');
+
+  if (!activeSession) {
+    // Pre-drive state — hide map, show prompt
+    mapDiv.style.display = 'none';
+    panel.innerHTML = `
+      <div id="drive-pre">
+        <h2>Ready to Drive?</h2>
+        <p>Allow location access when prompted.<br>Your route, weather, and drive time will be recorded automatically.</p>
+        <button class="btn-big btn-start" onclick="startDrive()">Start Drive</button>
+      </div>`;
+    if (driveMap) { driveMap.remove(); driveMap = null; }
+  } else {
+    // Active drive state
+    mapDiv.style.display = '';
+    if (!driveMap) initDriveMap();
+    else driveMap.invalidateSize();
+    renderDrivePanel();
+  }
+}
+
+function initDriveMap() {
+  driveMap = L.map('drive-map', { zoomControl: true, attributionControl: true });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://openstreetmap.org">OSM</a>'
+  }).addTo(driveMap);
+  drivePolyline = L.polyline([], { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(driveMap);
+  if (activeSession && activeSession.route.length > 0) {
+    drivePolyline.setLatLngs(activeSession.route);
+    const last = activeSession.route[activeSession.route.length - 1];
+    driveMap.setView(last, 15);
+    if (drivePosMarker) drivePosMarker.remove();
+    drivePosMarker = L.circleMarker(last, { radius: 8, color: '#fff', weight: 2, fillColor: '#2563eb', fillOpacity: 1 }).addTo(driveMap);
+  } else {
+    driveMap.setView([39.5, -98.35], 5);
+  }
+}
+
+function renderDrivePanel() {
+  const s = activeSession;
+  const elapsed = elapsedMin(s.startTime);
+  const dist = routeDistMiles(s.route);
+  const speedMph = s.lastSpeed != null ? (s.lastSpeed * 2.23694).toFixed(0) : '—';
+
+  document.getElementById('drive-panel').innerHTML = `
+    <div class="drive-stats">
+      <div class="ds-box"><div class="dv" id="drive-timer">${fmtElapsed(s.startTime)}</div><div class="dl">Time</div></div>
+      <div class="ds-box"><div class="dv">${dist.toFixed(2)}</div><div class="dl">Miles</div></div>
+      <div class="ds-box"><div class="dv">${speedMph}</div><div class="dl">MPH</div></div>
+      <div class="ds-box"><div class="dv">${s.route.length}</div><div class="dl">Points</div></div>
+    </div>
+    <div class="drive-meta">
+      <span class="badge ${s.isNight ? 'night' : 'day'}">${s.isNight ? '🌙 Night' : '☀️ Day'}</span>
+      ${s.weather ? `<span>${wxEmoji(s.weather.code)} ${s.weather.temp}°F ${WX_DESC[s.weather.code]||''}</span>` : ''}
+      <span style="overflow:hidden;text-overflow:ellipsis">${s.startLocation?.city || s.startLocation?.address || '📍 Locating…'}</span>
+    </div>
+    <button class="btn-big btn-stop" onclick="stopDrive()">Stop Drive</button>`;
+}
+
+async function startDrive() {
+  if (!navigator.geolocation) { toast('Geolocation not supported by this browser'); return; }
+  toast('Getting your location…');
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const { latitude: lat, longitude: lng } = pos.coords;
+    activeSession = {
+      id: genId(),
+      startTime: new Date().toISOString(),
+      endTime: null,
+      duration: 0,
+      isNight: false,
+      startLocation: null,
+      endLocation: null,
+      weather: null,
+      route: [[lat, lng]],
+      distance: 0,
+      lastSpeed: pos.coords.speed,
+      notes: ''
+    };
+
+    document.getElementById('live-badge').style.display = 'inline-block';
+    document.querySelector('.drive-btn').classList.add('recording');
+
+    // Fetch weather + location + day/night
+    const [wx, loc] = await Promise.all([
+      fetchWeather(lat, lng),
+      reverseGeocode(lat, lng)
+    ]);
+    activeSession.weather = wx;
+    activeSession.startLocation = loc;
+    activeSession.isNight = wx ? !wx.isDay : isNightByTime(new Date());
+
+    renderDrive();
+    navigate('drive');
+
+    // Start GPS watch
+    gpsWatchId = navigator.geolocation.watchPosition(onPosition,
+      err => console.warn('GPS error', err),
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    );
+
+    // Start timer
+    driveTimerInterval = setInterval(() => {
+      const el = document.getElementById('drive-timer');
+      if (el) el.textContent = fmtElapsed(activeSession.startTime);
+    }, 1000);
+
+  }, err => {
+    toast('Location denied — please enable GPS and try again');
+    console.error(err);
+  }, { enableHighAccuracy: true, timeout: 15000 });
+}
+
+function onPosition(pos) {
+  if (!activeSession) return;
+  const { latitude: lat, longitude: lng, speed } = pos.coords;
+  activeSession.lastSpeed = speed;
+  const route = activeSession.route;
+  if (route.length > 0) {
+    const last = route[route.length - 1];
+    const d = haversineMeters(last[0], last[1], lat, lng);
+    if (d < 5) return; // ignore jitter < 5m
+  }
+  route.push([lat, lng]);
+  if (drivePolyline) drivePolyline.setLatLngs(route);
+  if (driveMap) {
+    if (drivePosMarker) drivePosMarker.setLatLng([lat, lng]);
+    else drivePosMarker = L.circleMarker([lat, lng], { radius: 8, color: '#fff', weight: 2, fillColor: '#2563eb', fillOpacity: 1 }).addTo(driveMap);
+    driveMap.panTo([lat, lng], { animate: true, duration: 0.5 });
+  }
+  // Update distance/speed in panel
+  const distEl = document.querySelector('#drive-panel .drive-stats .ds-box:nth-child(2) .dv');
+  if (distEl) distEl.textContent = routeDistMiles(route).toFixed(2);
+  const ptEl = document.querySelector('#drive-panel .drive-stats .ds-box:nth-child(4) .dv');
+  if (ptEl) ptEl.textContent = route.length;
+  const spEl = document.querySelector('#drive-panel .drive-stats .ds-box:nth-child(3) .dv');
+  if (spEl) spEl.textContent = speed != null ? (speed * 2.23694).toFixed(0) : '—';
+}
+
+async function stopDrive() {
+  if (!activeSession) return;
+  if (gpsWatchId != null) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
+  clearInterval(driveTimerInterval); driveTimerInterval = null;
+
+  const now = new Date();
+  activeSession.endTime = now.toISOString();
+  activeSession.duration = elapsedMin(activeSession.startTime);
+  activeSession.distance = routeDistMiles(activeSession.route);
+
+  // Get end location
+  if (activeSession.route.length > 0) {
+    const last = activeSession.route[activeSession.route.length - 1];
+    activeSession.endLocation = await reverseGeocode(last[0], last[1]);
+  }
+
+  sessions.push({ ...activeSession });
+  saveSessions();
+  activeSession = null;
+
+  document.getElementById('live-badge').style.display = 'none';
+  document.querySelector('.drive-btn').classList.remove('recording');
+  if (driveMap) { driveMap.remove(); driveMap = null; drivePolyline = null; drivePosMarker = null; }
+
+  toast('Drive saved!');
+  navigate('dashboard');
+}
+
+// ═══════════════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════════════
+function renderHistory() {
+  const sorted = [...sessions].sort((a,b) => new Date(b.startTime)-new Date(a.startTime));
+  let filtered = sorted;
+  if (historyFilter === 'day') filtered = sorted.filter(s => !s.isNight);
+  else if (historyFilter === 'night') filtered = sorted.filter(s => s.isNight);
+
+  document.getElementById('history-content').innerHTML = `
+    <div class="filter-bar">
+      <button class="filter-chip ${historyFilter==='all'?'active':''}" onclick="setFilter('all')">All (${sorted.length})</button>
+      <button class="filter-chip ${historyFilter==='day'?'active':''}" onclick="setFilter('day')">☀️ Day</button>
+      <button class="filter-chip ${historyFilter==='night'?'active':''}" onclick="setFilter('night')">🌙 Night</button>
+    </div>
+    ${filtered.length ? `<div class="card">${filtered.map(sessionRow).join('')}</div>` : `<div class="empty-state"><div class="e-icon">📋</div><div>No sessions match this filter.</div></div>`}
+  `;
+  document.querySelectorAll('.session-row').forEach(r => {
+    r.addEventListener('click', () => showSessionDetail(r.dataset.id));
+  });
+}
+
+function setFilter(f) { historyFilter = f; renderHistory(); }
+
+// ═══════════════════════════════════════════════════════
+// SESSION DETAIL MODAL
+// ═══════════════════════════════════════════════════════
+function showSessionDetail(id) {
+  const s = sessions.find(x => x.id === id);
+  if (!s) return;
+  activeSessionId = id;
+
+  document.getElementById('modal-title').textContent = fmtDate(s.startTime);
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-item"><div class="di-label">Start</div><div class="di-val">${fmtTime(s.startTime)}</div></div>
+      <div class="detail-item"><div class="di-label">End</div><div class="di-val">${fmtTime(s.endTime)}</div></div>
+      <div class="detail-item"><div class="di-label">Duration</div><div class="di-val">${fmtDur(s.duration)}</div></div>
+      <div class="detail-item"><div class="di-label">Distance</div><div class="di-val">${(s.distance||0).toFixed(2)} mi</div></div>
+      <div class="detail-item"><div class="di-label">Conditions</div><div class="di-val">${s.isNight ? '🌙 Night' : '☀️ Day'}</div></div>
+      <div class="detail-item"><div class="di-label">Weather</div><div class="di-val">${s.weather ? wxEmoji(s.weather.code)+' '+s.weather.temp+'°F' : '—'}</div></div>
+      <div class="detail-item" style="grid-column:1/-1"><div class="di-label">From</div><div class="di-val">${s.startLocation?.address || '—'}</div></div>
+      <div class="detail-item" style="grid-column:1/-1"><div class="di-label">To</div><div class="di-val">${s.endLocation?.address || '—'}</div></div>
+      ${s.weather ? `<div class="detail-item" style="grid-column:1/-1"><div class="di-label">Wind</div><div class="di-val">${s.weather.windSpeed} mph · ${WX_DESC[s.weather.code]||'—'}</div></div>` : ''}
+    </div>
+    <div class="notes-label">Notes</div>
+    <textarea id="detail-notes" placeholder="Add notes for this drive…">${s.notes || ''}</textarea>
+  `;
+
+  document.getElementById('modal-del-btn').onclick = () => deleteSession(id);
+  document.getElementById('modal-save-btn').onclick = () => saveNotes(id);
+  document.getElementById('modal').classList.add('open');
+
+  // Init detail map after DOM renders
+  setTimeout(() => initDetailMap(s), 80);
+}
+
+function initDetailMap(s) {
+  if (detailMap) { detailMap.remove(); detailMap = null; }
+  if (!s.route || s.route.length < 2) {
+    document.getElementById('detail-map').innerHTML = '<div style="height:220px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.85rem;background:var(--bg)">No route recorded</div>';
+    return;
+  }
+  detailMap = L.map('detail-map', { zoomControl: false, attributionControl: false });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(detailMap);
+
+  const line = L.polyline(s.route, { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(detailMap);
+
+  // Start marker (green)
+  L.circleMarker(s.route[0], { radius: 8, color: '#fff', weight: 2, fillColor: '#16a34a', fillOpacity: 1 }).addTo(detailMap);
+  // End marker (red)
+  L.circleMarker(s.route[s.route.length - 1], { radius: 8, color: '#fff', weight: 2, fillColor: '#dc2626', fillOpacity: 1 }).addTo(detailMap);
+
+  detailMap.fitBounds(line.getBounds(), { padding: [20, 20] });
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  activeSessionId = null;
+  if (detailMap) { detailMap.remove(); detailMap = null; }
+}
+
+function saveNotes(id) {
+  const s = sessions.find(x => x.id === id);
+  if (!s) return;
+  s.notes = document.getElementById('detail-notes').value;
+  saveSessions();
+  toast('Notes saved');
+  closeModal();
+}
+
+function deleteSession(id) {
+  if (!confirm('Delete this session? This cannot be undone.')) return;
+  sessions = sessions.filter(x => x.id !== id);
+  saveSessions();
+  toast('Session deleted');
+  closeModal();
+  if (currentView === 'history') renderHistory();
+  else if (currentView === 'dashboard') renderDashboard();
+}
+
+// Close modal on backdrop click
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) closeModal();
+});
+
+// ═══════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════
+function renderSettings() {
+  const reqs = getReqs();
+  const stateOptions = Object.entries(STATE_REQS)
+    .map(([k,v]) => `<option value="${k}" ${k===settings.state?'selected':''}>${v.name}</option>`)
+    .join('');
+
+  document.getElementById('settings-content').innerHTML = `
+    <div class="card">
+      <div class="form-group">
+        <label>Driver Name</label>
+        <input id="s-name" type="text" value="${settings.driverName}" placeholder="e.g. Alex">
+      </div>
+      <div class="form-group">
+        <label>State</label>
+        <select id="s-state" onchange="previewState(this.value)">${stateOptions}</select>
+        <div class="req-display">
+          <div class="req-box"><div class="rv" id="req-total">${reqs.total || '—'}</div><div class="rl">Total Hours</div></div>
+          <div class="req-box night"><div class="rv" id="req-night">${reqs.night || '—'}</div><div class="rl">Night Hours</div></div>
+        </div>
+        ${reqs.note ? `<div class="note-box" id="req-note">ℹ️ ${reqs.note}</div>` : '<div id="req-note"></div>'}
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-top:0">Override Hours (optional)</div>
+      <div style="display:flex;gap:10px">
+        <div class="form-group" style="flex:1">
+          <label>Total Hours</label>
+          <input id="s-custom-total" type="number" min="0" max="999" step="1" value="${settings.customTotal != null ? settings.customTotal : ''}" placeholder="State default">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label>Night Hours</label>
+          <input id="s-custom-night" type="number" min="0" max="999" step="1" value="${settings.customNight != null ? settings.customNight : ''}" placeholder="State default">
+        </div>
+      </div>
+    </div>
+    <button class="btn-save" onclick="saveSettingsForm()">Save Settings</button>
+
+    <div class="section-title">Export Data</div>
+    <div class="btn-row">
+      <button class="btn-outline" onclick="exportJSON()">Export JSON</button>
+      <button class="btn-outline" onclick="exportCSV()">Export CSV</button>
+    </div>
+
+    <div class="section-title">Danger Zone</div>
+    <div class="btn-row">
+      <button class="btn-danger" onclick="clearAllData()">Clear All Data</button>
+    </div>
+    <div style="height:20px"></div>
+
+    <div style="text-align:center;font-size:.72rem;color:var(--muted);margin-top:8px;line-height:1.7">
+      Hour requirements sourced from IIHS and state DMV sites.<br>
+      Always verify with your state's official DMV.
+    </div>
+  `;
+}
+
+function previewState(code) {
+  const st = STATE_REQS[code];
+  if (!st) return;
+  document.getElementById('req-total').textContent = st.total || '—';
+  document.getElementById('req-night').textContent = st.night || '—';
+  document.getElementById('req-note').innerHTML = st.note ? `<div class="note-box">ℹ️ ${st.note}</div>` : '';
+}
+
+function saveSettingsForm() {
+  settings.driverName = document.getElementById('s-name').value.trim();
+  settings.state = document.getElementById('s-state').value;
+  const ct = document.getElementById('s-custom-total').value;
+  const cn = document.getElementById('s-custom-night').value;
+  settings.customTotal = ct !== '' ? +ct : null;
+  settings.customNight = cn !== '' ? +cn : null;
+  saveSettings();
+  toast('Settings saved');
+  renderSettings();
+}
+
+function clearAllData() {
+  if (!confirm('Delete ALL sessions and settings? This cannot be undone.')) return;
+  sessions = [];
+  settings = defaultSettings();
+  saveSessions(); saveSettings();
+  toast('All data cleared');
+  renderSettings();
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════
+function exportJSON() {
+  const data = { settings, sessions, exported: new Date().toISOString() };
+  download('drivelog.json', JSON.stringify(data, null, 2), 'application/json');
+}
+
+function exportCSV() {
+  const rows = [['ID','Date','Start','End','Duration (min)','Distance (mi)','Night','Weather','Temp (F)','Wind (mph)','Start Address','End Address','Route Points','Notes']];
+  for (const s of sessions) {
+    rows.push([
+      s.id,
+      fmtDate(s.startTime),
+      fmtTime(s.startTime),
+      fmtTime(s.endTime),
+      (s.duration||0).toFixed(1),
+      (s.distance||0).toFixed(2),
+      s.isNight ? 'Yes' : 'No',
+      s.weather ? (WX_DESC[s.weather.code]||'') : '',
+      s.weather ? s.weather.temp : '',
+      s.weather ? s.weather.windSpeed : '',
+      s.startLocation?.address || '',
+      s.endLocation?.address || '',
+      (s.route||[]).length,
+      (s.notes||'').replace(/,/g,'；').replace(/\n/g,' ')
+    ]);
+  }
+  const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+  download('drivelog.csv', csv, 'text/csv');
+}
+
+function download(filename, content, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ═══════════════════════════════════════════════════════
+// WEATHER & GEOCODING
+// ═══════════════════════════════════════════════════════
+async function fetchWeather(lat, lng) {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code,wind_speed_10m,is_day&temperature_unit=fahrenheit&wind_speed_unit=mph`;
+    const r = await fetch(url);
+    const d = await r.json();
+    const c = d.current;
+    return {
+      temp: Math.round(c.temperature_2m),
+      code: c.weather_code,
+      windSpeed: Math.round(c.wind_speed_10m),
+      isDay: c.is_day === 1
+    };
+  } catch { return null; }
+}
+
+async function reverseGeocode(lat, lng) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+    const r = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    const d = await r.json();
+    const city = d.address?.city || d.address?.town || d.address?.village || d.address?.county || '';
+    const state = d.address?.state || '';
+    const road = d.address?.road || '';
+    return {
+      lat, lng,
+      city: city ? `${city}, ${state}` : state,
+      address: road ? `${road}, ${city ? city + ', ' : ''}${state}` : d.display_name?.split(',').slice(0,3).join(',').trim() || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+    };
+  } catch {
+    return { lat, lng, city: '', address: `${lat.toFixed(4)}, ${lng.toFixed(4)}` };
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000, toRad = x => x * Math.PI / 180;
+  const dLat = toRad(lat2-lat1), dLng = toRad(lng2-lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function routeDistMiles(route) {
+  let d = 0;
+  for (let i = 1; i < route.length; i++) d += haversineMeters(route[i-1][0], route[i-1][1], route[i][0], route[i][1]);
+  return d / 1609.344;
+}
+
+function elapsedMin(startTime) {
+  return (Date.now() - new Date(startTime).getTime()) / 60000;
+}
+
+function fmtElapsed(startTime) {
+  const s = Math.floor((Date.now() - new Date(startTime).getTime()) / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+}
+
+function fmtDur(minutes) {
+  if (!minutes) return '0m';
+  const h = Math.floor(minutes / 60), m = Math.round(minutes % 60);
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+function fmtTime(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function isNightByTime(date) {
+  const h = date.getHours();
+  return h < 6 || h >= 20;
+}
+
+let toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+navigate('dashboard');
+</script>
+</body>
+</html>
