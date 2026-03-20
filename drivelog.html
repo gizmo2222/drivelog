@@ -37,9 +37,10 @@
     .nav-btn.drive-btn.recording { color: var(--red); }
 
     /* ── Main ── */
-    #main { flex: 1; overflow-y: auto; overflow-x: hidden; }
-    .view { display: none; min-height: 100%; }
+    #main { flex: 1; position: relative; overflow: hidden; }
+    .view { display: none; position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; }
     .view.active { display: block; }
+    #drive-view.active { display: flex; overflow: hidden; }
     .padded { padding: 16px; }
     .section-title { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 18px 0 8px; }
     .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px; }
@@ -76,8 +77,7 @@
     .start-fab:active { background: var(--blue-dk); }
 
     /* ── Drive View ── */
-    #drive-view { flex-direction: column; height: 100%; }
-    #drive-view.active { display: flex; }
+    #drive-view { flex-direction: column; }
     #drive-map { flex: 1; min-height: 0; z-index: 0; }
     #drive-panel { background: var(--card); border-top: 1px solid var(--border); padding: 14px 16px 16px; flex-shrink: 0; z-index: 10; }
     #drive-pre { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px 20px; text-align: center; }
@@ -129,8 +129,8 @@
     .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
 
     /* ── Modal ── */
-    #modal { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.45); overflow-y: auto; }
-    #modal.open { display: block; }
+    #modal, #manual-modal { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.45); overflow-y: auto; }
+    #modal.open, #manual-modal.open { display: block; }
     .modal-card { background: var(--card); margin: 20px 14px 30px; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
     .modal-header { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
     .modal-header h3 { font-size: 1rem; font-weight: 700; }
@@ -213,6 +213,56 @@
     <div class="modal-actions">
       <button class="btn-del" id="modal-del-btn">Delete</button>
       <button class="btn-save-notes" id="modal-save-btn">Save Notes</button>
+    </div>
+  </div>
+</div>
+
+<div id="manual-modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Add Drive Manually</h3>
+      <button class="close-btn" onclick="closeManualModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="m-date">
+      </div>
+      <div style="display:flex;gap:10px">
+        <div class="form-group" style="flex:1">
+          <label>Start Time</label>
+          <input type="time" id="m-start">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label>End Time</label>
+          <input type="time" id="m-end">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Or enter duration directly</label>
+        <div style="display:flex;gap:10px">
+          <input type="number" id="m-dur-h" min="0" max="23" placeholder="Hours" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:.92rem;outline:none">
+          <input type="number" id="m-dur-m" min="0" max="59" placeholder="Minutes" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:.92rem;outline:none">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Conditions</label>
+        <select id="m-daynight" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:.92rem;outline:none;background:var(--card);color:var(--text)">
+          <option value="day">☀️ Day</option>
+          <option value="night">🌙 Night</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Location (optional)</label>
+        <input type="text" id="m-location" placeholder="e.g. Springfield, IL">
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea id="m-notes" placeholder="Add notes…" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:.88rem;min-height:60px;resize:vertical;font-family:inherit;outline:none"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-save-notes" style="flex:1" onclick="saveManualDrive()">Save Drive</button>
     </div>
   </div>
 </div>
@@ -481,6 +531,7 @@ function renderDrive() {
         <h2>Ready to Drive?</h2>
         <p>Allow location access when prompted.<br>Your route, weather, and drive time will be recorded automatically.</p>
         <button class="btn-big btn-start" onclick="startDrive()">Start Drive</button>
+        <button class="btn-outline" style="width:100%;margin-top:10px" onclick="openManualModal()">Add Drive Manually</button>
       </div>`;
     if (driveMap) { driveMap.remove(); driveMap = null; }
   } else {
@@ -530,7 +581,7 @@ function renderDrivePanel() {
     <button class="btn-big btn-stop" onclick="stopDrive()">Stop Drive</button>`;
 }
 
-async function startDrive() {
+function startDrive() {
   activeSession = {
     id: genId(),
     startTime: new Date().toISOString(),
@@ -548,43 +599,54 @@ async function startDrive() {
 
   document.getElementById('live-badge').style.display = 'inline-block';
   document.querySelector('.drive-btn').classList.add('recording');
-
   navigate('drive');
 
-  // Start timer
   driveTimerInterval = setInterval(() => {
     const el = document.getElementById('drive-timer');
     if (el) el.textContent = fmtElapsed(activeSession.startTime);
   }, 1000);
 
-  // Acquire GPS in background — drive works without it
+  // GPS is optional — silently track in background if available
   if (navigator.geolocation) {
-    gpsWatchId = navigator.geolocation.watchPosition(async pos => {
-      const { latitude: lat, longitude: lng, speed } = pos.coords;
-      activeSession.lastSpeed = speed;
-
-      // First fix: fetch weather/location and seed route
-      if (activeSession.route.length === 0) {
-        activeSession.route.push([lat, lng]);
-        const [wx, loc] = await Promise.all([fetchWeather(lat, lng), reverseGeocode(lat, lng)]);
-        activeSession.weather = wx;
-        activeSession.startLocation = loc;
-        if (wx) activeSession.isNight = !wx.isDay;
-        if (driveMap) {
-          driveMap.setView([lat, lng], 15);
-          drivePosMarker = L.circleMarker([lat, lng], { radius: 8, color: '#fff', weight: 2, fillColor: '#2563eb', fillOpacity: 1 }).addTo(driveMap);
-        }
-        if (currentView === 'drive') renderDrivePanel();
-        return;
-      }
-
-      onPosition(pos);
-    },
-    err => console.warn('GPS unavailable:', err),
-    { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
-  } else {
-    toast('GPS not available — time will still be tracked');
+    gpsWatchId = navigator.geolocation.watchPosition(
+      pos => handleFirstFix(pos),
+      err => console.warn('GPS:', err.message),
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+    );
   }
+}
+
+async function handleFirstFix(pos) {
+  if (!activeSession) return;
+  // Swap to full onPosition handler after the first fix
+  if (gpsWatchId != null) {
+    navigator.geolocation.clearWatch(gpsWatchId);
+  }
+  const { latitude: lat, longitude: lng } = pos.coords;
+  activeSession.route.push([lat, lng]);
+  activeSession.lastSpeed = pos.coords.speed;
+
+  // Fetch weather & reverse geocode in parallel
+  const [wx, loc] = await Promise.all([fetchWeather(lat, lng), reverseGeocode(lat, lng)]);
+  if (!activeSession) return; // drive was stopped while fetching
+  activeSession.weather = wx;
+  activeSession.startLocation = loc;
+  if (wx) activeSession.isNight = !wx.isDay;
+
+  if (driveMap) {
+    driveMap.setView([lat, lng], 15);
+    if (drivePosMarker) drivePosMarker.remove();
+    drivePosMarker = L.circleMarker([lat, lng], { radius: 8, color: '#fff', weight: 2, fillColor: '#2563eb', fillOpacity: 1 }).addTo(driveMap);
+    drivePolyline.setLatLngs(activeSession.route);
+  }
+  if (currentView === 'drive') renderDrivePanel();
+
+  // Continue watching
+  gpsWatchId = navigator.geolocation.watchPosition(
+    onPosition,
+    err => console.warn('GPS:', err.message),
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+  );
 }
 
 function onPosition(pos) {
@@ -655,8 +717,9 @@ function renderHistory() {
       <button class="filter-chip ${historyFilter==='all'?'active':''}" onclick="setFilter('all')">All (${sorted.length})</button>
       <button class="filter-chip ${historyFilter==='day'?'active':''}" onclick="setFilter('day')">☀️ Day</button>
       <button class="filter-chip ${historyFilter==='night'?'active':''}" onclick="setFilter('night')">🌙 Night</button>
+      <button class="filter-chip" onclick="openManualModal()" style="margin-left:auto">+ Add</button>
     </div>
-    ${filtered.length ? `<div class="card">${filtered.map(sessionRow).join('')}</div>` : `<div class="empty-state"><div class="e-icon">📋</div><div>No sessions match this filter.</div></div>`}
+    ${filtered.length ? `<div class="card">${filtered.map(sessionRow).join('')}</div>` : `<div class="empty-state"><div class="e-icon">📋</div><div>No sessions yet.</div></div>`}
   `;
   document.querySelectorAll('.session-row').forEach(r => {
     r.addEventListener('click', () => showSessionDetail(r.dataset.id));
@@ -973,6 +1036,94 @@ function toast(msg) {
 // ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════
+// MANUAL ENTRY
+// ═══════════════════════════════════════════════════════
+function openManualModal() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const dateStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  document.getElementById('m-date').value = dateStr;
+  document.getElementById('m-start').value = timeStr;
+  document.getElementById('m-end').value = '';
+  document.getElementById('m-dur-h').value = '';
+  document.getElementById('m-dur-m').value = '';
+  document.getElementById('m-daynight').value = isNightByTime(now) ? 'night' : 'day';
+  document.getElementById('m-location').value = '';
+  document.getElementById('m-notes').value = '';
+  document.getElementById('manual-modal').classList.add('open');
+}
+
+function closeManualModal() {
+  document.getElementById('manual-modal').classList.remove('open');
+}
+
+document.getElementById('manual-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('manual-modal')) closeManualModal();
+});
+
+function saveManualDrive() {
+  const dateVal = document.getElementById('m-date').value;
+  const startVal = document.getElementById('m-start').value;
+  const endVal = document.getElementById('m-end').value;
+  const durH = parseFloat(document.getElementById('m-dur-h').value) || 0;
+  const durM = parseFloat(document.getElementById('m-dur-m').value) || 0;
+  const isNight = document.getElementById('m-daynight').value === 'night';
+  const location = document.getElementById('m-location').value.trim();
+  const notes = document.getElementById('m-notes').value.trim();
+
+  if (!dateVal) { toast('Please enter a date'); return; }
+  if (!startVal && durH === 0 && durM === 0) { toast('Please enter a start time or duration'); return; }
+
+  let startTime, duration;
+
+  if (startVal) {
+    startTime = new Date(`${dateVal}T${startVal}`).toISOString();
+    if (endVal) {
+      let start = new Date(`${dateVal}T${startVal}`);
+      let end = new Date(`${dateVal}T${endVal}`);
+      if (end <= start) end.setDate(end.getDate() + 1); // crossed midnight
+      duration = (end - start) / 60000;
+    } else if (durH > 0 || durM > 0) {
+      duration = durH * 60 + durM;
+    } else {
+      toast('Please enter an end time or duration'); return;
+    }
+  } else {
+    startTime = new Date(`${dateVal}T00:00`).toISOString();
+    duration = durH * 60 + durM;
+  }
+
+  if (duration <= 0) { toast('Duration must be greater than zero'); return; }
+
+  const endTime = new Date(new Date(startTime).getTime() + duration * 60000).toISOString();
+
+  const session = {
+    id: genId(),
+    startTime,
+    endTime,
+    duration,
+    isNight,
+    startLocation: location ? { lat: null, lng: null, city: location, address: location } : null,
+    endLocation: null,
+    weather: null,
+    route: [],
+    distance: 0,
+    notes,
+    manual: true
+  };
+
+  sessions.push(session);
+  saveSessions();
+  closeManualModal();
+  toast('Drive added');
+  if (currentView === 'history') renderHistory();
+  else if (currentView === 'dashboard') renderDashboard();
+  else if (currentView === 'drive') renderDrive();
+}
+
 navigate('dashboard');
 </script>
 </body>
