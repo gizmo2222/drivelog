@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="html-root">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
+    /* ── CSS Variables (light + dark) ── */
     :root {
       --blue: #2563eb; --blue-dk: #1d4ed8; --blue-lt: #dbeafe;
       --green: #16a34a; --green-lt: #dcfce7;
@@ -15,12 +16,22 @@
       --red: #dc2626; --red-lt: #fee2e2;
       --bg: #f1f5f9; --card: #ffffff;
       --text: #0f172a; --muted: #64748b; --border: #e2e8f0;
+      --input-bg: #ffffff;
       --radius: 14px; --shadow: 0 1px 4px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
       --nav-h: 60px;
     }
+    [data-dark] {
+      --bg: #0f172a; --card: #1e293b;
+      --text: #f1f5f9; --muted: #94a3b8; --border: #334155;
+      --input-bg: #1e293b;
+      --blue-lt: #1e3a5f; --green-lt: #14532d; --purple-lt: #3b0764;
+      --amber-lt: #451a03; --red-lt: #450a0a;
+      --shadow: 0 1px 4px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
-    body { display: flex; flex-direction: column; overflow: hidden; }
+    body { display: flex; flex-direction: column; overflow: hidden; transition: background .2s, color .2s; }
 
     /* ── Header ── */
     #header { background: var(--card); border-bottom: 1px solid var(--border); padding: 14px 20px 10px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
@@ -29,10 +40,10 @@
     #live-badge { display: none; background: var(--red); color: #fff; font-size: .65rem; font-weight: 700; padding: 2px 7px; border-radius: 99px; letter-spacing: .5px; animation: pulse 1.4s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
 
-    /* ── Bottom Nav ── */
+    /* ── Bottom Nav (5 tabs) ── */
     #nav { display: flex; background: var(--card); border-top: 1px solid var(--border); flex-shrink: 0; }
-    .nav-btn { flex: 1; border: none; background: none; cursor: pointer; padding: 8px 4px 10px; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--muted); transition: color .15s; font-size: .65rem; font-weight: 600; letter-spacing: .2px; text-transform: uppercase; }
-    .nav-btn .icon { font-size: 1.4rem; line-height: 1; }
+    .nav-btn { flex: 1; border: none; background: none; cursor: pointer; padding: 6px 2px 8px; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--muted); transition: color .15s; font-size: .58rem; font-weight: 600; letter-spacing: .2px; text-transform: uppercase; }
+    .nav-btn .icon { font-size: 1.3rem; line-height: 1; }
     .nav-btn.active { color: var(--blue); }
     .nav-btn.drive-btn.recording { color: var(--red); }
 
@@ -76,10 +87,24 @@
     .start-fab { display: block; width: 100%; background: var(--blue); color: #fff; border: none; border-radius: var(--radius); padding: 15px; font-size: 1rem; font-weight: 700; cursor: pointer; text-align: center; margin-bottom: 12px; }
     .start-fab:active { background: var(--blue-dk); }
 
+    /* ── Milestone badges ── */
+    .milestone-badges { display: flex; flex-wrap: wrap; gap: 10px; }
+    .milestone-badge { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 14px; border-radius: var(--radius); border: 2px solid var(--border); background: var(--card); min-width: 70px; text-align: center; }
+    .milestone-badge.earned { border-color: var(--green); background: var(--green-lt); }
+    .milestone-badge.locked { opacity: .5; }
+    .milestone-badge .mb-icon { font-size: 1.6rem; }
+    .milestone-badge .mb-label { font-size: .62rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+    .milestone-badge.earned .mb-label { color: var(--green); }
+
+    /* ── Weekly Chart ── */
+    .chart-svg text { fill: var(--muted); }
+    .chart-legend { display: flex; gap: 16px; justify-content: center; margin-top: 8px; font-size: .72rem; color: var(--muted); align-items: center; }
+    .legend-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
     /* ── Drive View ── */
     #drive-view { flex-direction: column; }
     #drive-map { flex: 1; min-height: 0; z-index: 0; }
-    #drive-panel { background: var(--card); border-top: 1px solid var(--border); padding: 14px 16px 16px; flex-shrink: 0; z-index: 10; }
+    #drive-panel { background: var(--card); border-top: 1px solid var(--border); padding: 14px 16px 16px; flex-shrink: 0; z-index: 10; max-height: 55vh; overflow-y: auto; }
     #drive-pre { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px 20px; text-align: center; }
     #drive-pre h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; }
     #drive-pre p { color: var(--muted); font-size: .88rem; margin-bottom: 28px; line-height: 1.5; }
@@ -98,15 +123,36 @@
     .badge.day { background: var(--amber-lt); color: var(--amber); }
     #locate-btn { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: .78rem; cursor: pointer; color: var(--muted); margin-bottom: 14px; }
 
+    /* ── Wrap-up panel ── */
+    .wrapup-title { font-size: 1rem; font-weight: 800; margin-bottom: 14px; }
+    .wrapup-summary { display: flex; gap: 12px; margin-bottom: 16px; }
+    .wrapup-stat { flex: 1; text-align: center; background: var(--bg); border-radius: 10px; padding: 10px 6px; }
+    .wrapup-stat .ws-val { font-size: 1.2rem; font-weight: 800; }
+    .wrapup-stat .ws-lbl { font-size: .6rem; text-transform: uppercase; color: var(--muted); letter-spacing: .4px; }
+
+    /* ── Skills View ── */
+    #skills-view { }
+    .skill-progress-bar { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; margin-bottom: 4px; }
+    .skill-progress-fill { height: 100%; border-radius: 99px; background: var(--blue); transition: width .4s; }
+    .skill-progress-label { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); margin-bottom: 14px; }
+    .skill-cat-title { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 16px 0 8px; }
+    .skill-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .skill-row:last-child { border-bottom: none; }
+    .skill-name { flex: 1; font-size: .88rem; font-weight: 500; }
+    .skill-btns { display: flex; gap: 5px; }
+    .skill-btn { border: 1.5px solid var(--border); background: var(--card); color: var(--muted); border-radius: 8px; padding: 4px 9px; font-size: .7rem; font-weight: 600; cursor: pointer; transition: all .15s; }
+    .skill-btn.active-practiced { border-color: var(--amber); background: var(--amber-lt); color: var(--amber); }
+    .skill-btn.active-mastered { border-color: var(--green); background: var(--green-lt); color: var(--green); }
+
     /* ── History ── */
     .filter-bar { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px; }
-    .filter-chip { border: 1px solid var(--border); background: var(--card); border-radius: 99px; padding: 5px 13px; font-size: .75rem; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-weight: 500; }
+    .filter-chip { border: 1px solid var(--border); background: var(--card); border-radius: 99px; padding: 5px 13px; font-size: .75rem; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-weight: 500; color: var(--text); }
     .filter-chip.active { background: var(--blue); color: #fff; border-color: var(--blue); }
 
     /* ── Settings ── */
     .form-group { margin-bottom: 16px; }
     .form-group label { display: block; font-size: .78rem; font-weight: 600; margin-bottom: 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
-    .form-group input, .form-group select { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: .92rem; background: var(--card); color: var(--text); outline: none; }
+    .form-group input, .form-group select { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: .92rem; background: var(--input-bg); color: var(--text); outline: none; }
     .form-group input:focus, .form-group select:focus { border-color: var(--blue); }
     .req-display { display: flex; gap: 10px; margin-top: 8px; }
     .req-box { flex: 1; background: var(--blue-lt); border-radius: 10px; padding: 10px; text-align: center; }
@@ -120,8 +166,9 @@
     .btn-outline:hover { border-color: var(--blue); color: var(--blue); }
     .btn-danger { flex: 1; border: 1.5px solid var(--red); background: var(--card); border-radius: 10px; padding: 12px; font-size: .88rem; font-weight: 600; cursor: pointer; color: var(--red); }
     .btn-save { width: 100%; background: var(--blue); color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: .95rem; font-weight: 700; cursor: pointer; margin-top: 8px; }
-    .toggle-row { display: flex; align-items: center; justify-content: space-between; }
-    .toggle { position: relative; width: 46px; height: 26px; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+    .toggle-row label { font-size: .88rem; font-weight: 500; color: var(--text); }
+    .toggle { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
     .toggle input { opacity: 0; width: 0; height: 0; }
     .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 99px; cursor: pointer; transition: background .2s; }
     .toggle-slider::before { content: ''; position: absolute; height: 20px; width: 20px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform .2s; }
@@ -138,11 +185,10 @@
     #detail-map { height: 220px; }
     .modal-body { padding: 16px; }
     .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .detail-item { }
     .detail-item .di-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
     .detail-item .di-val { font-size: .9rem; font-weight: 600; }
     .notes-label { font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin: 14px 0 6px; }
-    #detail-notes { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: .88rem; min-height: 70px; resize: vertical; font-family: inherit; outline: none; }
+    #detail-notes { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: .88rem; min-height: 70px; resize: vertical; font-family: inherit; outline: none; background: var(--input-bg); color: var(--text); }
     #detail-notes:focus { border-color: var(--blue); }
     .modal-actions { padding: 12px 16px 16px; display: flex; gap: 10px; border-top: 1px solid var(--border); }
     .btn-del { flex: 1; border: 1.5px solid var(--red); color: var(--red); background: none; border-radius: 10px; padding: 11px; font-weight: 600; cursor: pointer; }
@@ -151,9 +197,13 @@
     /* ── Misc ── */
     .chip { display: inline-flex; align-items: center; gap: 4px; background: var(--blue-lt); color: var(--blue); font-size: .65rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
     .chip.night { background: var(--purple-lt); color: var(--purple); }
-    .toast { position: fixed; bottom: calc(var(--nav-h) + 14px); left: 50%; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 10px 18px; border-radius: 99px; font-size: .82rem; font-weight: 500; z-index: 999; opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; }
+    .toast { position: fixed; bottom: calc(var(--nav-h) + 14px); left: 50%; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 10px 18px; border-radius: 99px; font-size: .82rem; font-weight: 500; z-index: 9999; opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; }
     .toast.show { opacity: 1; }
     .leaflet-control-attribution { font-size: 9px !important; }
+    textarea.modal-input { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: .88rem; min-height: 60px; resize: vertical; font-family: inherit; outline: none; background: var(--input-bg); color: var(--text); }
+    .inline-input { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: .92rem; outline: none; background: var(--input-bg); color: var(--text); }
+    .inline-input:focus { border-color: var(--blue); }
+    select.inline-input { appearance: auto; }
     @media (max-width: 400px) { .drive-stats { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
@@ -176,6 +226,11 @@
     <div id="drive-panel"></div>
   </div>
 
+  <!-- Skills -->
+  <div id="skills-view" class="view padded">
+    <div id="skills-content"></div>
+  </div>
+
   <!-- History -->
   <div id="history-view" class="view padded">
     <div id="history-content"></div>
@@ -194,6 +249,9 @@
   <button class="nav-btn drive-btn" data-view="drive">
     <span class="icon">🚗</span>Drive
   </button>
+  <button class="nav-btn" data-view="skills">
+    <span class="icon">✅</span>Skills
+  </button>
   <button class="nav-btn" data-view="history">
     <span class="icon">📋</span>History
   </button>
@@ -202,6 +260,7 @@
   </button>
 </nav>
 
+<!-- Session Detail Modal -->
 <div id="modal">
   <div class="modal-card">
     <div class="modal-header">
@@ -218,6 +277,7 @@
   </div>
 </div>
 
+<!-- Manual Entry Modal -->
 <div id="manual-modal">
   <div class="modal-card">
     <div class="modal-header">
@@ -227,39 +287,47 @@
     <div class="modal-body">
       <div class="form-group">
         <label>Date</label>
-        <input type="date" id="m-date">
+        <input type="date" id="m-date" class="inline-input">
       </div>
       <div style="display:flex;gap:10px">
         <div class="form-group" style="flex:1">
           <label>Start Time</label>
-          <input type="time" id="m-start">
+          <input type="time" id="m-start" class="inline-input">
         </div>
         <div class="form-group" style="flex:1">
           <label>End Time</label>
-          <input type="time" id="m-end">
+          <input type="time" id="m-end" class="inline-input">
         </div>
       </div>
       <div class="form-group">
         <label>Or enter duration directly</label>
         <div style="display:flex;gap:10px">
-          <input type="number" id="m-dur-h" min="0" max="23" placeholder="Hours" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:.92rem;outline:none">
-          <input type="number" id="m-dur-m" min="0" max="59" placeholder="Minutes" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:.92rem;outline:none">
+          <input type="number" id="m-dur-h" min="0" max="23" placeholder="Hours" class="inline-input" style="flex:1">
+          <input type="number" id="m-dur-m" min="0" max="59" placeholder="Minutes" class="inline-input" style="flex:1">
         </div>
       </div>
       <div class="form-group">
         <label>Conditions</label>
-        <select id="m-daynight" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:.92rem;outline:none;background:var(--card);color:var(--text)">
+        <select id="m-daynight" class="inline-input">
           <option value="day">☀️ Day</option>
           <option value="night">🌙 Night</option>
         </select>
       </div>
       <div class="form-group">
+        <label>Supervisor Name (optional)</label>
+        <input type="text" id="m-supervisor" placeholder="e.g. Jane Smith" class="inline-input">
+      </div>
+      <div class="form-group">
+        <label>Supervisor License # (optional)</label>
+        <input type="text" id="m-supervisor-lic" placeholder="License number" class="inline-input">
+      </div>
+      <div class="form-group">
         <label>Location (optional)</label>
-        <input type="text" id="m-location" placeholder="e.g. Springfield, IL">
+        <input type="text" id="m-location" placeholder="e.g. Springfield, IL" class="inline-input">
       </div>
       <div class="form-group">
         <label>Notes (optional)</label>
-        <textarea id="m-notes" placeholder="Add notes…" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:.88rem;min-height:60px;resize:vertical;font-family:inherit;outline:none"></textarea>
+        <textarea id="m-notes" placeholder="Add notes…" class="modal-input"></textarea>
       </div>
     </div>
     <div class="modal-actions">
@@ -355,28 +423,75 @@ function wxEmoji(code) {
 }
 
 // ═══════════════════════════════════════════════════════
+// SKILLS DATA
+// ═══════════════════════════════════════════════════════
+const SKILLS = [
+  { id: 'steering',     cat: 'Basic Control',      name: 'Smooth steering' },
+  { id: 'braking',      cat: 'Basic Control',      name: 'Braking & acceleration' },
+  { id: 'mirrors',      cat: 'Basic Control',      name: 'Mirror & blind spot checks' },
+  { id: 'lane_keep',    cat: 'Basic Control',      name: 'Lane keeping' },
+  { id: 'speed_mgmt',   cat: 'Basic Control',      name: 'Speed management' },
+  { id: 'parallel',     cat: 'Parking',            name: 'Parallel parking' },
+  { id: 'angle_park',   cat: 'Parking',            name: 'Angle parking' },
+  { id: 'perp_park',    cat: 'Parking',            name: 'Perpendicular parking' },
+  { id: 'hill_park',    cat: 'Parking',            name: 'Hill parking' },
+  { id: 'backing',      cat: 'Parking',            name: 'Backing up / reversing' },
+  { id: 'three_point',  cat: 'Parking',            name: '3-point turn' },
+  { id: 'stop_sign',    cat: 'Intersections',      name: 'Stop sign procedure' },
+  { id: 'traffic_lt',   cat: 'Intersections',      name: 'Traffic light judgment' },
+  { id: 'left_turn',    cat: 'Intersections',      name: 'Left turns' },
+  { id: 'right_turn',   cat: 'Intersections',      name: 'Right turns' },
+  { id: 'roundabout',   cat: 'Intersections',      name: 'Roundabouts' },
+  { id: 'yield',        cat: 'Intersections',      name: 'Yielding & merging' },
+  { id: 'on_ramp',      cat: 'Highway',            name: 'On-ramp / merging at speed' },
+  { id: 'off_ramp',     cat: 'Highway',            name: 'Off-ramp / exiting' },
+  { id: 'lane_change',  cat: 'Highway',            name: 'Lane changes' },
+  { id: 'following',    cat: 'Highway',            name: 'Following distance' },
+  { id: 'passing',      cat: 'Highway',            name: 'Passing other vehicles' },
+  { id: 'night_drv',    cat: 'Adverse Conditions', name: 'Night driving' },
+  { id: 'rain',         cat: 'Adverse Conditions', name: 'Rain / wet roads' },
+  { id: 'heavy_traf',   cat: 'Adverse Conditions', name: 'Heavy traffic / rush hour' },
+  { id: 'construction', cat: 'Adverse Conditions', name: 'Construction zones' },
+  { id: 'school_zone',  cat: 'Adverse Conditions', name: 'School zones / pedestrians' },
+];
+
+// ═══════════════════════════════════════════════════════
+// MILESTONES
+// ═══════════════════════════════════════════════════════
+const MILESTONES = [
+  { id: 'first',    icon: '🚗', label: 'First Drive',  pct: 0,    check: (t,r) => t.sessions >= 1 },
+  { id: 'q1',       icon: '🌱', label: '25% Done',     pct: 25,   check: (t,r) => r.total > 0 && t.totalHours >= r.total * 0.25 },
+  { id: 'half',     icon: '🏅', label: 'Halfway',      pct: 50,   check: (t,r) => r.total > 0 && t.totalHours >= r.total * 0.50 },
+  { id: 'q3',       icon: '🔥', label: '75% There',    pct: 75,   check: (t,r) => r.total > 0 && t.totalHours >= r.total * 0.75 },
+  { id: 'complete', icon: '🎉', label: '100% Complete', pct: 100, check: (t,r) => r.total > 0 && t.totalHours >= r.total },
+];
+
+// ═══════════════════════════════════════════════════════
 // APP STATE
 // ═══════════════════════════════════════════════════════
 let settings = loadSettings();
 let sessions = loadSessions();
+let skills = loadSkills();
 let activeSession = null;
+let pendingSession = null; // set after GPS stop, before save (wrap-up state)
 let currentView = 'dashboard';
 let driveMap = null, drivePolyline = null, drivePosMarker = null;
 let detailMap = null;
 let driveTimerInterval = null;
 let gpsWatchId = null;
-let activeSessionId = null; // for modal
+let activeSessionId = null;
 let historyFilter = 'all';
+let editingSessionId = null;
 
 // ═══════════════════════════════════════════════════════
 // PERSISTENCE
 // ═══════════════════════════════════════════════════════
 function loadSettings() {
-  try { return JSON.parse(localStorage.getItem('dl_settings')) || defaultSettings(); }
+  try { return { ...defaultSettings(), ...JSON.parse(localStorage.getItem('dl_settings')) }; }
   catch { return defaultSettings(); }
 }
 function defaultSettings() {
-  return { driverName: '', state: 'CA', customTotal: null, customNight: null, goalDate: '' };
+  return { driverName: '', state: 'CA', customTotal: null, customNight: null, goalDate: '', darkMode: false, milestonesUnlocked: [] };
 }
 function saveSettings() { localStorage.setItem('dl_settings', JSON.stringify(settings)); }
 
@@ -386,8 +501,29 @@ function loadSessions() {
 }
 function saveSessions() { localStorage.setItem('dl_sessions', JSON.stringify(sessions)); }
 
+function loadSkills() {
+  try { return JSON.parse(localStorage.getItem('dl_skills')) || {}; }
+  catch { return {}; }
+}
+function saveSkills(sk) { localStorage.setItem('dl_skills', JSON.stringify(sk)); }
+
+function setSkill(id, level) {
+  skills[id] = level;
+  saveSkills(skills);
+  renderSkills();
+}
+
 function genId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+// ═══════════════════════════════════════════════════════
+// DARK MODE
+// ═══════════════════════════════════════════════════════
+function applyDarkMode() {
+  const root = document.getElementById('html-root');
+  if (settings.darkMode) root.setAttribute('data-dark', '');
+  else root.removeAttribute('data-dark');
 }
 
 // ═══════════════════════════════════════════════════════
@@ -414,6 +550,131 @@ function getTotals() {
 }
 
 // ═══════════════════════════════════════════════════════
+// MILESTONES
+// ═══════════════════════════════════════════════════════
+function checkMilestones() {
+  const totals = getTotals();
+  const reqs = getReqs();
+  if (!settings.milestonesUnlocked) settings.milestonesUnlocked = [];
+  let changed = false;
+  for (const m of MILESTONES) {
+    if (!settings.milestonesUnlocked.includes(m.id) && m.check(totals, reqs)) {
+      settings.milestonesUnlocked.push(m.id);
+      changed = true;
+      setTimeout(() => toast(m.icon + ' Milestone unlocked: ' + m.label), 400);
+    }
+  }
+  if (changed) saveSettings();
+}
+
+function milestonesHTML(totals, reqs) {
+  if (!settings.milestonesUnlocked) settings.milestonesUnlocked = [];
+  const badges = MILESTONES.map(m => {
+    const earned = settings.milestonesUnlocked.includes(m.id);
+    return `<div class="milestone-badge ${earned ? 'earned' : 'locked'}">
+      <div class="mb-icon">${m.icon}</div>
+      <div class="mb-label">${m.label}</div>
+    </div>`;
+  }).join('');
+  return `<div class="section-title">Milestones</div>
+  <div class="card"><div class="milestone-badges">${badges}</div></div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// WEEKLY CHART
+// ═══════════════════════════════════════════════════════
+function weeklyChartHTML() {
+  // Build 8-week buckets ending this week
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=Sun
+  const weekStart = new Date(now); weekStart.setHours(0,0,0,0);
+  weekStart.setDate(weekStart.getDate() - dayOfWeek);
+
+  const weeks = [];
+  for (let i = 7; i >= 0; i--) {
+    const ws = new Date(weekStart); ws.setDate(ws.getDate() - i * 7);
+    const we = new Date(ws); we.setDate(we.getDate() + 7);
+    weeks.push({ start: ws, end: we, dayMin: 0, nightMin: 0 });
+  }
+
+  for (const s of sessions) {
+    const t = new Date(s.startTime).getTime();
+    for (const w of weeks) {
+      if (t >= w.start.getTime() && t < w.end.getTime()) {
+        if (s.isNight) w.nightMin += s.duration || 0;
+        else w.dayMin += s.duration || 0;
+        break;
+      }
+    }
+  }
+
+  const toH = m => m / 60;
+  const maxH = Math.max(...weeks.map(w => toH(w.dayMin + w.nightMin)), 0.5);
+
+  // SVG dimensions
+  const vW = 340, vH = 130;
+  const padL = 28, padR = 4, padT = 14, padB = 28;
+  const chartW = vW - padL - padR;
+  const chartH = vH - padT - padB;
+  const barW = chartW / 8;
+
+  // Nice Y interval
+  const niceMax = Math.ceil(maxH / 1) * 1 || 1;
+  const yStep = niceMax <= 4 ? 1 : niceMax <= 8 ? 2 : 5;
+
+  let gridLines = '';
+  let yLabels = '';
+  for (let h = 0; h <= niceMax; h += yStep) {
+    const y = padT + chartH - (h / niceMax) * chartH;
+    gridLines += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${vW - padR}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`;
+    yLabels += `<text x="${padL - 3}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="8">${h}</text>`;
+  }
+
+  let bars = '';
+  let xLabels = '';
+  weeks.forEach((w, i) => {
+    const x = padL + i * barW;
+    const bx = x + barW * 0.15;
+    const bw = barW * 0.7;
+    const dayH = (toH(w.dayMin) / niceMax) * chartH;
+    const nightH = (toH(w.nightMin) / niceMax) * chartH;
+    const totalH = dayH + nightH;
+    const barY = padT + chartH - totalH;
+
+    if (nightH > 0) {
+      bars += `<rect x="${bx.toFixed(1)}" y="${(padT + chartH - nightH).toFixed(1)}" width="${bw.toFixed(1)}" height="${nightH.toFixed(1)}" rx="2" fill="#7c3aed"/>`;
+    }
+    if (dayH > 0) {
+      const dy = padT + chartH - totalH;
+      bars += `<rect x="${bx.toFixed(1)}" y="${dy.toFixed(1)}" width="${bw.toFixed(1)}" height="${dayH.toFixed(1)}" rx="2" fill="#d97706"/>`;
+    }
+    if (totalH > 4) {
+      const totalHrs = toH(w.dayMin + w.nightMin);
+      bars += `<text x="${(bx + bw/2).toFixed(1)}" y="${(barY - 2).toFixed(1)}" text-anchor="middle" font-size="7" fill="var(--muted)">${totalHrs.toFixed(1)}</text>`;
+    }
+
+    // X label: short date (M/D)
+    const lbl = `${w.start.getMonth()+1}/${w.start.getDate()}`;
+    xLabels += `<text x="${(x + barW/2).toFixed(1)}" y="${(vH - 4).toFixed(1)}" text-anchor="middle" font-size="7">${lbl}</text>`;
+  });
+
+  const svg = `<svg viewBox="0 0 ${vW} ${vH}" class="chart-svg" style="width:100%;height:auto;display:block">
+    ${gridLines}
+    ${yLabels}
+    ${bars}
+    ${xLabels}
+  </svg>`;
+
+  const legend = `<div class="chart-legend">
+    <span><span class="legend-swatch" style="background:#d97706"></span> Day</span>
+    <span><span class="legend-swatch" style="background:#7c3aed"></span> Night</span>
+  </div>`;
+
+  return `<div class="section-title">Weekly Summary</div>
+  <div class="card">${svg}${legend}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════════════════════════
 document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -429,6 +690,7 @@ function navigate(view) {
   document.getElementById(view + '-view').classList.add('active');
   if (view === 'dashboard') renderDashboard();
   else if (view === 'drive') renderDrive();
+  else if (view === 'skills') renderSkills();
   else if (view === 'history') renderHistory();
   else if (view === 'settings') renderSettings();
 }
@@ -462,7 +724,7 @@ function goalCard(reqs, totals) {
   const nightLeft = Math.max(reqs.night - totals.nightHours, 0);
   const hrsPerWeek = hoursLeft / weeksLeft;
   const nightPerWeek = nightLeft / weeksLeft;
-  const onTrack = reqs.total === 0 || hrsPerWeek <= 5; // warn if > 5 hrs/week needed
+  const onTrack = reqs.total === 0 || hrsPerWeek <= 5;
   const accent = onTrack ? 'var(--green)' : 'var(--amber)';
   const accentLt = onTrack ? 'var(--green-lt)' : 'var(--amber-lt)';
 
@@ -502,7 +764,7 @@ function renderDashboard() {
   const recent = [...sessions].sort((a,b) => new Date(b.startTime)-new Date(a.startTime)).slice(0,3);
 
   document.getElementById('dash-content').innerHTML = `
-    ${activeSession ? `<button class="start-fab btn-big" style="background:var(--red)" onclick="navigate('drive')">● Drive in progress — tap to view</button>` : ''}
+    ${activeSession ? `<button class="start-fab" style="background:var(--red)" onclick="navigate('drive')">● Drive in progress — tap to view</button>` : ''}
     <div class="card">
       <div class="stats-hero">
         <div class="ring-wrap">
@@ -542,6 +804,8 @@ function renderDashboard() {
       </div>
     </div>
     ${goalCard(reqs, totals)}
+    ${milestonesHTML(totals, reqs)}
+    ${weeklyChartHTML()}
     ${!activeSession ? `<button class="start-fab" onclick="navigate('drive')">Start a Drive</button>` : ''}
     <div class="section-title">Recent Sessions</div>
     ${recent.length ? `<div class="card">${recent.map(sessionRow).join('')}</div>` : `<div class="empty-state"><div class="e-icon">🚗</div><div>No sessions yet.<br>Tap <b>Drive</b> to log your first drive.</div></div>`}
@@ -568,11 +832,57 @@ function progressRing(pct, color, size=110, stroke=11) {
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - pct);
   return `<svg width="${size}" height="${size}" style="transform:rotate(-90deg)">
-    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#e2e8f0" stroke-width="${stroke}"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--border)" stroke-width="${stroke}"/>
     <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
       stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}"
       stroke-linecap="round"/>
   </svg>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// SKILLS VIEW
+// ═══════════════════════════════════════════════════════
+function renderSkills() {
+  const total = SKILLS.length;
+  const practiced = SKILLS.filter(s => skills[s.id] === 1).length;
+  const mastered = SKILLS.filter(s => skills[s.id] === 2).length;
+  const done = practiced + mastered;
+  const pct = Math.round((mastered / total) * 100);
+
+  // Group by category
+  const cats = {};
+  for (const sk of SKILLS) {
+    if (!cats[sk.cat]) cats[sk.cat] = [];
+    cats[sk.cat].push(sk);
+  }
+
+  let catsHTML = '';
+  for (const [cat, skList] of Object.entries(cats)) {
+    const rows = skList.map(sk => {
+      const level = skills[sk.id] || 0;
+      return `<div class="skill-row">
+        <div class="skill-name">${sk.name}</div>
+        <div class="skill-btns">
+          <button class="skill-btn ${level === 0 ? '' : ''}" onclick="setSkill('${sk.id}', ${level === 0 ? 1 : 0})" title="Not started">—</button>
+          <button class="skill-btn ${level === 1 ? 'active-practiced' : ''}" onclick="setSkill('${sk.id}', ${level === 1 ? 0 : 1})" title="Practiced">Practiced</button>
+          <button class="skill-btn ${level === 2 ? 'active-mastered' : ''}" onclick="setSkill('${sk.id}', ${level === 2 ? 0 : 2})" title="Mastered">Mastered</button>
+        </div>
+      </div>`;
+    }).join('');
+    catsHTML += `<div class="skill-cat-title">${cat}</div><div class="card" style="padding:0 16px">${rows}</div>`;
+  }
+
+  document.getElementById('skills-content').innerHTML = `
+    <div class="section-title">Skills Checklist</div>
+    <div class="card">
+      <div class="skill-progress-label">
+        <span>${mastered} mastered · ${practiced} practiced · ${total - done} not started</span>
+        <span>${pct}% mastered</span>
+      </div>
+      <div class="skill-progress-bar"><div class="skill-progress-fill" style="width:${pct}%"></div></div>
+    </div>
+    ${catsHTML}
+  `;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -582,8 +892,14 @@ function renderDrive() {
   const panel = document.getElementById('drive-panel');
   const mapDiv = document.getElementById('drive-map');
 
-  if (!activeSession) {
-    // Pre-drive state — hide map, show prompt
+  if (pendingSession) {
+    // Wrap-up state
+    mapDiv.style.display = '';
+    if (!driveMap) initDriveMap();
+    else driveMap.invalidateSize();
+    renderWrapupPanel();
+  } else if (!activeSession) {
+    // Pre-drive state
     mapDiv.style.display = 'none';
     panel.innerHTML = `
       <div id="drive-pre">
@@ -602,15 +918,47 @@ function renderDrive() {
   }
 }
 
+function renderWrapupPanel() {
+  const s = pendingSession;
+  document.getElementById('drive-panel').innerHTML = `
+    <div class="wrapup-title">📋 Save Drive</div>
+    <div class="wrapup-summary">
+      <div class="wrapup-stat">
+        <div class="ws-val">${fmtDur(s.duration)}</div>
+        <div class="ws-lbl">Time</div>
+      </div>
+      <div class="wrapup-stat">
+        <div class="ws-val">${(s.distance||0).toFixed(2)}</div>
+        <div class="ws-lbl">Miles</div>
+      </div>
+      <div class="wrapup-stat">
+        <div class="ws-val">${s.isNight ? '🌙' : '☀️'}</div>
+        <div class="ws-lbl">${s.isNight ? 'Night' : 'Day'}</div>
+      </div>
+      ${s.maxSpeedMph > 0 ? `<div class="wrapup-stat"><div class="ws-val">${s.maxSpeedMph}</div><div class="ws-lbl">Max MPH</div></div>` : ''}
+    </div>
+    <div class="form-group">
+      <label style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px">Supervisor Name</label>
+      <input type="text" id="wu-supervisor" placeholder="Supervisor name" class="inline-input">
+    </div>
+    <div class="form-group">
+      <label style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px">Supervisor License #</label>
+      <input type="text" id="wu-supervisor-lic" placeholder="License number" class="inline-input">
+    </div>
+    <button class="btn-big btn-start" style="margin-top:4px" onclick="savePendingDrive()">Save Drive</button>
+  `;
+}
+
 function initDriveMap() {
   driveMap = L.map('drive-map', { zoomControl: true, attributionControl: true });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© <a href="https://openstreetmap.org">OSM</a>'
   }).addTo(driveMap);
+  const session = activeSession || pendingSession;
   drivePolyline = L.polyline([], { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(driveMap);
-  if (activeSession && activeSession.route.length > 0) {
-    drivePolyline.setLatLngs(activeSession.route);
-    const last = activeSession.route[activeSession.route.length - 1];
+  if (session && session.route.length > 0) {
+    drivePolyline.setLatLngs(session.route);
+    const last = session.route[session.route.length - 1];
     driveMap.setView(last, 15);
     if (drivePosMarker) drivePosMarker.remove();
     drivePosMarker = L.circleMarker(last, { radius: 8, color: '#fff', weight: 2, fillColor: '#2563eb', fillOpacity: 1 }).addTo(driveMap);
@@ -621,15 +969,13 @@ function initDriveMap() {
 
 function renderDrivePanel() {
   const s = activeSession;
-  const elapsed = elapsedMin(s.startTime);
   const dist = routeDistMiles(s.route);
-  const speedMph = s.lastSpeed != null ? (s.lastSpeed * 2.23694).toFixed(0) : '—';
 
   document.getElementById('drive-panel').innerHTML = `
     <div class="drive-stats">
       <div class="ds-box"><div class="dv" id="drive-timer">${fmtElapsed(s.startTime)}</div><div class="dl">Time</div></div>
       <div class="ds-box"><div class="dv">${dist.toFixed(2)}</div><div class="dl">Miles</div></div>
-      <div class="ds-box"><div class="dv">${speedMph}</div><div class="dl">MPH</div></div>
+      <div class="ds-box"><div class="dv" id="drive-speed">${s.lastSpeed != null ? (s.lastSpeed * 2.23694).toFixed(0) : '—'}</div><div class="dl">MPH</div></div>
       <div class="ds-box"><div class="dv">${s.route.length}</div><div class="dl">Points</div></div>
     </div>
     <div class="drive-meta">
@@ -653,7 +999,12 @@ function startDrive() {
     route: [],
     distance: 0,
     lastSpeed: null,
-    notes: ''
+    speedSamples: [],
+    maxSpeedMph: 0,
+    avgSpeedMph: 0,
+    notes: '',
+    supervisorName: '',
+    supervisorLic: ''
   };
 
   document.getElementById('live-badge').style.display = 'inline-block';
@@ -665,7 +1016,6 @@ function startDrive() {
     if (el) el.textContent = fmtElapsed(activeSession.startTime);
   }, 1000);
 
-  // GPS is optional — silently track in background if available
   if (navigator.geolocation) {
     gpsWatchId = navigator.geolocation.watchPosition(
       pos => handleFirstFix(pos),
@@ -677,17 +1027,17 @@ function startDrive() {
 
 async function handleFirstFix(pos) {
   if (!activeSession) return;
-  // Swap to full onPosition handler after the first fix
-  if (gpsWatchId != null) {
-    navigator.geolocation.clearWatch(gpsWatchId);
-  }
+  if (gpsWatchId != null) navigator.geolocation.clearWatch(gpsWatchId);
   const { latitude: lat, longitude: lng } = pos.coords;
   activeSession.route.push([lat, lng]);
   activeSession.lastSpeed = pos.coords.speed;
+  if (pos.coords.speed != null) {
+    const mph = pos.coords.speed * 2.23694;
+    activeSession.speedSamples.push(mph);
+  }
 
-  // Fetch weather & reverse geocode in parallel
   const [wx, loc] = await Promise.all([fetchWeather(lat, lng), reverseGeocode(lat, lng)]);
-  if (!activeSession) return; // drive was stopped while fetching
+  if (!activeSession) return;
   activeSession.weather = wx;
   activeSession.startLocation = loc;
   if (wx) activeSession.isNight = !wx.isDay;
@@ -700,7 +1050,6 @@ async function handleFirstFix(pos) {
   }
   if (currentView === 'drive') renderDrivePanel();
 
-  // Continue watching
   gpsWatchId = navigator.geolocation.watchPosition(
     onPosition,
     err => console.warn('GPS:', err.message),
@@ -712,11 +1061,15 @@ function onPosition(pos) {
   if (!activeSession) return;
   const { latitude: lat, longitude: lng, speed } = pos.coords;
   activeSession.lastSpeed = speed;
+  if (speed != null) {
+    const mph = speed * 2.23694;
+    activeSession.speedSamples.push(mph);
+  }
   const route = activeSession.route;
   if (route.length > 0) {
     const last = route[route.length - 1];
     const d = haversineMeters(last[0], last[1], lat, lng);
-    if (d < 5) return; // ignore jitter < 5m
+    if (d < 5) return;
   }
   route.push([lat, lng]);
   if (drivePolyline) drivePolyline.setLatLngs(route);
@@ -725,12 +1078,11 @@ function onPosition(pos) {
     else drivePosMarker = L.circleMarker([lat, lng], { radius: 8, color: '#fff', weight: 2, fillColor: '#2563eb', fillOpacity: 1 }).addTo(driveMap);
     driveMap.panTo([lat, lng], { animate: true, duration: 0.5 });
   }
-  // Update distance/speed in panel
   const distEl = document.querySelector('#drive-panel .drive-stats .ds-box:nth-child(2) .dv');
   if (distEl) distEl.textContent = routeDistMiles(route).toFixed(2);
   const ptEl = document.querySelector('#drive-panel .drive-stats .ds-box:nth-child(4) .dv');
   if (ptEl) ptEl.textContent = route.length;
-  const spEl = document.querySelector('#drive-panel .drive-stats .ds-box:nth-child(3) .dv');
+  const spEl = document.getElementById('drive-speed');
   if (spEl) spEl.textContent = speed != null ? (speed * 2.23694).toFixed(0) : '—';
 }
 
@@ -744,15 +1096,35 @@ async function stopDrive() {
   activeSession.duration = elapsedMin(activeSession.startTime);
   activeSession.distance = routeDistMiles(activeSession.route);
 
+  // Compute speed stats
+  const samples = activeSession.speedSamples || [];
+  if (samples.length > 0) {
+    activeSession.maxSpeedMph = Math.round(Math.max(...samples));
+    activeSession.avgSpeedMph = Math.round(samples.reduce((a, b) => a + b, 0) / samples.length);
+  }
+
   // Get end location
   if (activeSession.route.length > 0) {
     const last = activeSession.route[activeSession.route.length - 1];
     activeSession.endLocation = await reverseGeocode(last[0], last[1]);
   }
 
-  sessions.push({ ...activeSession });
-  saveSessions();
+  // Move to pending (wrap-up) state
+  pendingSession = { ...activeSession };
   activeSession = null;
+
+  if (currentView === 'drive') renderDrive();
+}
+
+function savePendingDrive() {
+  if (!pendingSession) return;
+  pendingSession.supervisorName = (document.getElementById('wu-supervisor')?.value || '').trim();
+  pendingSession.supervisorLic = (document.getElementById('wu-supervisor-lic')?.value || '').trim();
+
+  sessions.push({ ...pendingSession });
+  saveSessions();
+  checkMilestones();
+  pendingSession = null;
 
   document.getElementById('live-badge').style.display = 'none';
   document.querySelector('.drive-btn').classList.remove('recording');
@@ -805,6 +1177,10 @@ function showSessionDetail(id) {
       <div class="detail-item"><div class="di-label">Distance</div><div class="di-val">${(s.distance||0).toFixed(2)} mi</div></div>
       <div class="detail-item"><div class="di-label">Conditions</div><div class="di-val">${s.isNight ? '🌙 Night' : '☀️ Day'}</div></div>
       <div class="detail-item"><div class="di-label">Weather</div><div class="di-val">${s.weather ? wxEmoji(s.weather.code)+' '+s.weather.temp+'°F' : '—'}</div></div>
+      <div class="detail-item"><div class="di-label">Max Speed</div><div class="di-val">${s.maxSpeedMph > 0 ? s.maxSpeedMph + ' mph' : '—'}</div></div>
+      <div class="detail-item"><div class="di-label">Avg Speed</div><div class="di-val">${s.avgSpeedMph > 0 ? s.avgSpeedMph + ' mph' : '—'}</div></div>
+      <div class="detail-item"><div class="di-label">Supervisor</div><div class="di-val">${s.supervisorName || '—'}</div></div>
+      <div class="detail-item"><div class="di-label">License #</div><div class="di-val">${s.supervisorLic || '—'}</div></div>
       <div class="detail-item" style="grid-column:1/-1"><div class="di-label">From</div><div class="di-val">${s.startLocation?.address || '—'}</div></div>
       <div class="detail-item" style="grid-column:1/-1"><div class="di-label">To</div><div class="di-val">${s.endLocation?.address || '—'}</div></div>
       ${s.weather ? `<div class="detail-item" style="grid-column:1/-1"><div class="di-label">Wind</div><div class="di-val">${s.weather.windSpeed} mph · ${WX_DESC[s.weather.code]||'—'}</div></div>` : ''}
@@ -818,7 +1194,6 @@ function showSessionDetail(id) {
   document.getElementById('modal-save-btn').onclick = () => saveNotes(id);
   document.getElementById('modal').classList.add('open');
 
-  // Init detail map after DOM renders
   setTimeout(() => initDetailMap(s), 80);
 }
 
@@ -830,14 +1205,9 @@ function initDetailMap(s) {
   }
   detailMap = L.map('detail-map', { zoomControl: false, attributionControl: false });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(detailMap);
-
   const line = L.polyline(s.route, { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(detailMap);
-
-  // Start marker (green)
   L.circleMarker(s.route[0], { radius: 8, color: '#fff', weight: 2, fillColor: '#16a34a', fillOpacity: 1 }).addTo(detailMap);
-  // End marker (red)
   L.circleMarker(s.route[s.route.length - 1], { radius: 8, color: '#fff', weight: 2, fillColor: '#dc2626', fillOpacity: 1 }).addTo(detailMap);
-
   detailMap.fitBounds(line.getBounds(), { padding: [20, 20] });
 }
 
@@ -866,7 +1236,6 @@ function deleteSession(id) {
   else if (currentView === 'dashboard') renderDashboard();
 }
 
-// Close modal on backdrop click
 document.getElementById('modal').addEventListener('click', e => {
   if (e.target === document.getElementById('modal')) closeModal();
 });
@@ -888,7 +1257,7 @@ function renderSettings() {
       </div>
       <div class="form-group">
         <label>Goal Date (optional)</label>
-        <input id="s-goal" type="date" value="${settings.goalDate || ''}" onchange="saveSettingsForm()" style="color-scheme:light">
+        <input id="s-goal" type="date" value="${settings.goalDate || ''}" onchange="saveSettingsForm()" style="color-scheme:${settings.darkMode?'dark':'light'}">
       </div>
       <div class="form-group">
         <label>State</label>
@@ -913,13 +1282,28 @@ function renderSettings() {
         </div>
       </div>
     </div>
+    <div class="card">
+      <div class="section-title" style="margin-top:0">Appearance</div>
+      <div class="toggle-row">
+        <label for="s-dark">Dark Mode</label>
+        <label class="toggle">
+          <input type="checkbox" id="s-dark" ${settings.darkMode ? 'checked' : ''} onchange="toggleDarkMode(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
     <div style="font-size:.72rem;color:var(--muted);text-align:center;margin-bottom:4px">Settings save automatically</div>
 
-    <div class="section-title">Export Data</div>
-    <div class="btn-row">
+    <div class="section-title">Export / Import</div>
+    <div class="btn-row" style="margin-bottom:10px">
       <button class="btn-outline" onclick="exportJSON()">Export JSON</button>
       <button class="btn-outline" onclick="exportCSV()">Export CSV</button>
     </div>
+    <div class="btn-row" style="margin-bottom:10px">
+      <button class="btn-outline" onclick="document.getElementById('import-file').click()">Import JSON</button>
+      <button class="btn-outline" onclick="printLog()">Print Log</button>
+    </div>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(this)">
 
     <div class="section-title">Danger Zone</div>
     <div class="btn-row">
@@ -932,6 +1316,12 @@ function renderSettings() {
       Always verify with your state's official DMV.
     </div>
   `;
+}
+
+function toggleDarkMode(val) {
+  settings.darkMode = val;
+  saveSettings();
+  applyDarkMode();
 }
 
 function previewState(code) {
@@ -954,44 +1344,87 @@ function saveSettingsForm() {
 }
 
 function clearAllData() {
-  if (!confirm('Delete ALL sessions and settings? This cannot be undone.')) return;
+  if (!confirm('Delete ALL sessions, skills, and settings? This cannot be undone.')) return;
   sessions = [];
   settings = defaultSettings();
-  saveSessions(); saveSettings();
+  skills = {};
+  saveSessions(); saveSettings(); saveSkills(skills);
   toast('All data cleared');
   renderSettings();
 }
 
 // ═══════════════════════════════════════════════════════
-// EXPORT
+// EXPORT & IMPORT
 // ═══════════════════════════════════════════════════════
 function exportJSON() {
-  const data = { settings, sessions, exported: new Date().toISOString() };
+  const data = { settings, sessions, skills, exported: new Date().toISOString(), version: 2 };
   download('drivelog.json', JSON.stringify(data, null, 2), 'application/json');
 }
 
 function exportCSV() {
-  const rows = [['ID','Date','Start','End','Duration (min)','Distance (mi)','Night','Weather','Temp (F)','Wind (mph)','Start Address','End Address','Route Points','Notes']];
-  for (const s of sessions) {
+  const rows = [['#','Date','Start','End','Duration (min)','Distance (mi)','D/N','Supervisor','License#','Location','Weather','Temp (F)','Wind (mph)','Max Speed (mph)','Avg Speed (mph)','Notes']];
+  const sorted = [...sessions].sort((a,b) => new Date(a.startTime)-new Date(b.startTime));
+  sorted.forEach((s, i) => {
     rows.push([
-      s.id,
+      i + 1,
       fmtDate(s.startTime),
       fmtTime(s.startTime),
       fmtTime(s.endTime),
       (s.duration||0).toFixed(1),
       (s.distance||0).toFixed(2),
-      s.isNight ? 'Yes' : 'No',
+      s.isNight ? 'Night' : 'Day',
+      s.supervisorName || '',
+      s.supervisorLic || '',
+      s.startLocation?.city || s.startLocation?.address || '',
       s.weather ? (WX_DESC[s.weather.code]||'') : '',
       s.weather ? s.weather.temp : '',
       s.weather ? s.weather.windSpeed : '',
-      s.startLocation?.address || '',
-      s.endLocation?.address || '',
-      (s.route||[]).length,
+      s.maxSpeedMph || '',
+      s.avgSpeedMph || '',
       (s.notes||'').replace(/,/g,'；').replace(/\n/g,' ')
     ]);
-  }
+  });
   const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
   download('drivelog.csv', csv, 'text/csv');
+}
+
+function importJSON(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.sessions) { toast('Invalid file'); return; }
+      const replace = confirm('OK = Replace all data\nCancel = Merge (add new sessions only)');
+      if (replace) {
+        sessions = data.sessions || [];
+        if (data.settings) settings = { ...defaultSettings(), ...data.settings };
+        if (data.skills) skills = data.skills;
+        saveSessions(); saveSettings(); saveSkills(skills);
+        applyDarkMode();
+        toast('Import complete — all data replaced');
+      } else {
+        // Merge: add sessions not already present by ID
+        const existingIds = new Set(sessions.map(s => s.id));
+        let added = 0;
+        for (const s of (data.sessions || [])) {
+          if (!existingIds.has(s.id)) { sessions.push(s); added++; }
+        }
+        if (data.skills) {
+          skills = { ...data.skills, ...skills }; // existing values win
+          saveSkills(skills);
+        }
+        saveSessions();
+        toast(`Merged: ${added} new session(s) added`);
+      }
+      if (currentView === 'dashboard') renderDashboard();
+      else if (currentView === 'history') renderHistory();
+      else if (currentView === 'settings') renderSettings();
+    } catch { toast('Could not parse file'); }
+  };
+  reader.readAsText(file);
+  input.value = '';
 }
 
 function download(filename, content, mime) {
@@ -1000,6 +1433,92 @@ function download(filename, content, mime) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+// ═══════════════════════════════════════════════════════
+// PRINT LOG
+// ═══════════════════════════════════════════════════════
+function printLog() {
+  const reqs = getReqs();
+  const totals = getTotals();
+  const sorted = [...sessions].sort((a,b) => new Date(a.startTime)-new Date(b.startTime));
+  const now = new Date().toLocaleDateString([], { year:'numeric', month:'long', day:'numeric' });
+  const driver = settings.driverName || 'Student Driver';
+  const state = reqs.stateName;
+
+  const rows = sorted.map((s, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${fmtDate(s.startTime)}</td>
+      <td>${fmtTime(s.startTime)}</td>
+      <td>${fmtTime(s.endTime)}</td>
+      <td>${fmtDur(s.duration)}</td>
+      <td>${s.isNight ? 'Night' : 'Day'}</td>
+      <td>${s.supervisorName || ''}</td>
+      <td>${s.supervisorLic || ''}</td>
+      <td>${s.startLocation?.city || s.startLocation?.address || ''}</td>
+      <td>${s.weather ? wxEmoji(s.weather.code)+' '+(WX_DESC[s.weather.code]||'') : ''}</td>
+      <td>${(s.distance||0).toFixed(1)}</td>
+      <td>${(s.notes||'').substring(0,60)}</td>
+    </tr>`).join('');
+
+  const skillRows = SKILLS.map(sk => {
+    const level = skills[sk.id] || 0;
+    const status = level === 2 ? 'Mastered' : level === 1 ? 'Practiced' : 'Not started';
+    return `<tr><td>${sk.cat}</td><td>${sk.name}</td><td>${status}</td></tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>DriveLog — ${driver}</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 11px; color: #000; margin: 20px; }
+  h1 { font-size: 18px; margin-bottom: 4px; }
+  .meta { color: #666; margin-bottom: 16px; font-size: 11px; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 24px; }
+  th { background: #1e293b; color: #fff; padding: 5px 6px; text-align: left; font-size: 10px; }
+  td { padding: 4px 6px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  .totals td { font-weight: bold; background: #dbeafe !important; }
+  h2 { font-size: 14px; margin-top: 24px; margin-bottom: 8px; }
+  .sig { margin-top: 40px; border-top: 1px solid #000; padding-top: 8px; width: 300px; font-size: 11px; }
+  @media print { body { margin: 10px; } }
+</style></head><body>
+<h1>DriveLog — ${driver}</h1>
+<div class="meta">State: ${state} &nbsp;|&nbsp; Required: ${reqs.total}h total / ${reqs.night}h night &nbsp;|&nbsp; Printed: ${now}</div>
+<div class="meta">Completed: ${totals.totalHours.toFixed(1)}h total (${totals.nightHours.toFixed(1)}h night) &nbsp;|&nbsp; ${totals.sessions} sessions &nbsp;|&nbsp; ${totals.distMi.toFixed(1)} miles</div>
+
+<h2>Session Log</h2>
+<table>
+<thead><tr>
+  <th>#</th><th>Date</th><th>Start</th><th>End</th><th>Duration</th><th>D/N</th>
+  <th>Supervisor</th><th>License #</th><th>Location</th><th>Weather</th><th>Miles</th><th>Notes</th>
+</tr></thead>
+<tbody>${rows}</tbody>
+<tfoot>
+  <tr class="totals">
+    <td colspan="4">TOTALS</td>
+    <td>${fmtDur(totals.totalHours * 60)}</td>
+    <td>${totals.nightHours.toFixed(1)}h night</td>
+    <td colspan="4"></td>
+    <td>${totals.distMi.toFixed(1)}</td>
+    <td></td>
+  </tr>
+</tfoot>
+</table>
+
+<h2>Skills Checklist</h2>
+<table>
+<thead><tr><th>Category</th><th>Skill</th><th>Status</th></tr></thead>
+<tbody>${skillRows}</tbody>
+</table>
+
+<div class="sig">Supervisor Signature: _____________________________ Date: ___________</div>
+<div class="sig" style="margin-top:20px">Parent/Guardian Signature: _____________________________ Date: ___________</div>
+<script>window.print();<\/script>
+</body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1036,6 +1555,144 @@ async function reverseGeocode(lat, lng) {
   } catch {
     return { lat, lng, city: '', address: `${lat.toFixed(4)}, ${lng.toFixed(4)}` };
   }
+}
+
+// ═══════════════════════════════════════════════════════
+// MANUAL ENTRY
+// ═══════════════════════════════════════════════════════
+function openManualModal(editId = null) {
+  editingSessionId = editId;
+  const pad = n => String(n).padStart(2,'0');
+
+  if (editId) {
+    const s = sessions.find(x => x.id === editId);
+    if (!s) return;
+    const start = new Date(s.startTime);
+    const end = s.endTime ? new Date(s.endTime) : null;
+    document.getElementById('manual-modal-title').textContent = 'Edit Drive';
+    document.getElementById('m-date').value = `${start.getFullYear()}-${pad(start.getMonth()+1)}-${pad(start.getDate())}`;
+    document.getElementById('m-start').value = `${pad(start.getHours())}:${pad(start.getMinutes())}`;
+    document.getElementById('m-end').value = end ? `${pad(end.getHours())}:${pad(end.getMinutes())}` : '';
+    document.getElementById('m-dur-h').value = '';
+    document.getElementById('m-dur-m').value = '';
+    document.getElementById('m-daynight').value = s.isNight ? 'night' : 'day';
+    document.getElementById('m-supervisor').value = s.supervisorName || '';
+    document.getElementById('m-supervisor-lic').value = s.supervisorLic || '';
+    document.getElementById('m-location').value = s.startLocation?.city || s.startLocation?.address || '';
+    document.getElementById('m-notes').value = s.notes || '';
+  } else {
+    const now = new Date();
+    document.getElementById('manual-modal-title').textContent = 'Add Drive Manually';
+    document.getElementById('m-date').value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+    document.getElementById('m-start').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    document.getElementById('m-end').value = '';
+    document.getElementById('m-dur-h').value = '';
+    document.getElementById('m-dur-m').value = '';
+    document.getElementById('m-daynight').value = isNightByTime(now) ? 'night' : 'day';
+    document.getElementById('m-supervisor').value = '';
+    document.getElementById('m-supervisor-lic').value = '';
+    document.getElementById('m-location').value = '';
+    document.getElementById('m-notes').value = '';
+  }
+
+  document.getElementById('manual-modal').classList.add('open');
+}
+
+function closeManualModal() {
+  editingSessionId = null;
+  document.getElementById('manual-modal').classList.remove('open');
+}
+
+document.getElementById('manual-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('manual-modal')) closeManualModal();
+});
+
+function saveManualDrive() {
+  const dateVal = document.getElementById('m-date').value;
+  const startVal = document.getElementById('m-start').value;
+  const endVal = document.getElementById('m-end').value;
+  const durH = parseFloat(document.getElementById('m-dur-h').value) || 0;
+  const durM = parseFloat(document.getElementById('m-dur-m').value) || 0;
+  const isNight = document.getElementById('m-daynight').value === 'night';
+  const supervisorName = document.getElementById('m-supervisor').value.trim();
+  const supervisorLic = document.getElementById('m-supervisor-lic').value.trim();
+  const location = document.getElementById('m-location').value.trim();
+  const notes = document.getElementById('m-notes').value.trim();
+
+  if (!dateVal) { toast('Please enter a date'); return; }
+  if (!startVal && durH === 0 && durM === 0) { toast('Please enter a start time or duration'); return; }
+
+  let startTime, duration;
+
+  if (startVal) {
+    startTime = new Date(`${dateVal}T${startVal}`).toISOString();
+    if (endVal) {
+      let start = new Date(`${dateVal}T${startVal}`);
+      let end = new Date(`${dateVal}T${endVal}`);
+      if (end <= start) end.setDate(end.getDate() + 1);
+      duration = (end - start) / 60000;
+    } else if (durH > 0 || durM > 0) {
+      duration = durH * 60 + durM;
+    } else {
+      toast('Please enter an end time or duration'); return;
+    }
+  } else {
+    startTime = new Date(`${dateVal}T00:00`).toISOString();
+    duration = durH * 60 + durM;
+  }
+
+  if (duration <= 0) { toast('Duration must be greater than zero'); return; }
+
+  const endTime = new Date(new Date(startTime).getTime() + duration * 60000).toISOString();
+
+  if (editingSessionId) {
+    const idx = sessions.findIndex(x => x.id === editingSessionId);
+    if (idx !== -1) {
+      const existing = sessions[idx];
+      sessions[idx] = {
+        ...existing,
+        startTime,
+        endTime,
+        duration,
+        isNight,
+        supervisorName,
+        supervisorLic,
+        startLocation: location ? { lat: existing.startLocation?.lat || null, lng: existing.startLocation?.lng || null, city: location, address: location } : existing.startLocation,
+        notes,
+      };
+    }
+    saveSessions();
+    checkMilestones();
+    closeManualModal();
+    toast('Drive updated');
+  } else {
+    const session = {
+      id: genId(),
+      startTime,
+      endTime,
+      duration,
+      isNight,
+      supervisorName,
+      supervisorLic,
+      startLocation: location ? { lat: null, lng: null, city: location, address: location } : null,
+      endLocation: null,
+      weather: null,
+      route: [],
+      distance: 0,
+      maxSpeedMph: 0,
+      avgSpeedMph: 0,
+      notes,
+      manual: true
+    };
+    sessions.push(session);
+    saveSessions();
+    checkMilestones();
+    closeManualModal();
+    toast('Drive added');
+  }
+  if (currentView === 'history') renderHistory();
+  else if (currentView === 'dashboard') renderDashboard();
+  else if (currentView === 'drive') renderDrive();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1099,133 +1756,7 @@ function toast(msg) {
 // ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════
-// MANUAL ENTRY
-// ═══════════════════════════════════════════════════════
-let editingSessionId = null;
-
-function openManualModal(editId = null) {
-  editingSessionId = editId;
-  const pad = n => String(n).padStart(2,'0');
-
-  if (editId) {
-    const s = sessions.find(x => x.id === editId);
-    if (!s) return;
-    const start = new Date(s.startTime);
-    const end = s.endTime ? new Date(s.endTime) : null;
-    document.getElementById('manual-modal-title').textContent = 'Edit Drive';
-    document.getElementById('m-date').value = `${start.getFullYear()}-${pad(start.getMonth()+1)}-${pad(start.getDate())}`;
-    document.getElementById('m-start').value = `${pad(start.getHours())}:${pad(start.getMinutes())}`;
-    document.getElementById('m-end').value = end ? `${pad(end.getHours())}:${pad(end.getMinutes())}` : '';
-    document.getElementById('m-dur-h').value = '';
-    document.getElementById('m-dur-m').value = '';
-    document.getElementById('m-daynight').value = s.isNight ? 'night' : 'day';
-    document.getElementById('m-location').value = s.startLocation?.city || s.startLocation?.address || '';
-    document.getElementById('m-notes').value = s.notes || '';
-  } else {
-    const now = new Date();
-    document.getElementById('manual-modal-title').textContent = 'Add Drive Manually';
-    document.getElementById('m-date').value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
-    document.getElementById('m-start').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    document.getElementById('m-end').value = '';
-    document.getElementById('m-dur-h').value = '';
-    document.getElementById('m-dur-m').value = '';
-    document.getElementById('m-daynight').value = isNightByTime(now) ? 'night' : 'day';
-    document.getElementById('m-location').value = '';
-    document.getElementById('m-notes').value = '';
-  }
-
-  document.getElementById('manual-modal').classList.add('open');
-}
-
-function closeManualModal() {
-  editingSessionId = null;
-  document.getElementById('manual-modal').classList.remove('open');
-}
-
-document.getElementById('manual-modal').addEventListener('click', e => {
-  if (e.target === document.getElementById('manual-modal')) closeManualModal();
-});
-
-function saveManualDrive() {
-  const dateVal = document.getElementById('m-date').value;
-  const startVal = document.getElementById('m-start').value;
-  const endVal = document.getElementById('m-end').value;
-  const durH = parseFloat(document.getElementById('m-dur-h').value) || 0;
-  const durM = parseFloat(document.getElementById('m-dur-m').value) || 0;
-  const isNight = document.getElementById('m-daynight').value === 'night';
-  const location = document.getElementById('m-location').value.trim();
-  const notes = document.getElementById('m-notes').value.trim();
-
-  if (!dateVal) { toast('Please enter a date'); return; }
-  if (!startVal && durH === 0 && durM === 0) { toast('Please enter a start time or duration'); return; }
-
-  let startTime, duration;
-
-  if (startVal) {
-    startTime = new Date(`${dateVal}T${startVal}`).toISOString();
-    if (endVal) {
-      let start = new Date(`${dateVal}T${startVal}`);
-      let end = new Date(`${dateVal}T${endVal}`);
-      if (end <= start) end.setDate(end.getDate() + 1); // crossed midnight
-      duration = (end - start) / 60000;
-    } else if (durH > 0 || durM > 0) {
-      duration = durH * 60 + durM;
-    } else {
-      toast('Please enter an end time or duration'); return;
-    }
-  } else {
-    startTime = new Date(`${dateVal}T00:00`).toISOString();
-    duration = durH * 60 + durM;
-  }
-
-  if (duration <= 0) { toast('Duration must be greater than zero'); return; }
-
-  const endTime = new Date(new Date(startTime).getTime() + duration * 60000).toISOString();
-
-  if (editingSessionId) {
-    const idx = sessions.findIndex(x => x.id === editingSessionId);
-    if (idx !== -1) {
-      const existing = sessions[idx];
-      sessions[idx] = {
-        ...existing,
-        startTime,
-        endTime,
-        duration,
-        isNight,
-        startLocation: location ? { lat: existing.startLocation?.lat || null, lng: existing.startLocation?.lng || null, city: location, address: location } : existing.startLocation,
-        notes,
-      };
-    }
-    saveSessions();
-    closeManualModal();
-    toast('Drive updated');
-  } else {
-    const session = {
-      id: genId(),
-      startTime,
-      endTime,
-      duration,
-      isNight,
-      startLocation: location ? { lat: null, lng: null, city: location, address: location } : null,
-      endLocation: null,
-      weather: null,
-      route: [],
-      distance: 0,
-      notes,
-      manual: true
-    };
-    sessions.push(session);
-    saveSessions();
-    closeManualModal();
-    toast('Drive added');
-  }
-  if (currentView === 'history') renderHistory();
-  else if (currentView === 'dashboard') renderDashboard();
-  else if (currentView === 'drive') renderDrive();
-}
-
+applyDarkMode();
 navigate('dashboard');
 </script>
 </body>
