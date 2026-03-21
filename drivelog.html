@@ -237,11 +237,11 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .onboard-dot.active{background:var(--accent)}
 
 /* ── 13. Milestones ── */
-.milestones-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:4px}
-.milestone-badge{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--card);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow);opacity:.38;transition:opacity .3s}
+.milestones-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}
+.milestone-badge{display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--card);border-radius:12px;padding:10px 6px;box-shadow:var(--shadow);opacity:.38;transition:opacity .3s}
 .milestone-badge.earned{opacity:1}
-.milestone-badge .m-icon{font-size:1.5rem}
-.milestone-badge .m-label{font-size:.58rem;color:var(--muted);text-align:center;white-space:nowrap;font-weight:600}
+.milestone-badge .m-icon{font-size:1.4rem}
+.milestone-badge .m-label{font-size:.55rem;color:var(--muted);text-align:center;font-weight:600;line-height:1.2}
 
 /* ── 14. Goal card with collapse ── */
 .goal-card-header{display:flex;align-items:center;justify-content:space-between;cursor:pointer}
