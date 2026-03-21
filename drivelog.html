@@ -939,14 +939,11 @@ function renderSkills(){
             const sd=skillsData[skill.id]||{status:'not_started'};
             const isOpen=openSkillTip===skill.id;
             return`<div class="skill-row" data-id="${skill.id}">
-              <span class="skill-label">${skill.label}</span>
+              <span class="skill-label" onclick="toggleTip('${skill.id}')" style="cursor:pointer;flex:1">${skill.label} <span style="font-size:.7rem;color:var(--muted)">${isOpen?'▲':'▼'}</span></span>
               <div class="skill-btns">
                 <button class="skill-btn ${sd.status==='in_progress'?'in_progress':''}" onclick="setSkill('${skill.id}','in_progress')">Learning</button>
                 <button class="skill-btn ${sd.status==='mastered'?'mastered':''}" onclick="setSkill('${skill.id}','mastered')">Mastered</button>
               </div>
-              <button onclick="toggleTip('${skill.id}')" style="background:none;border:none;cursor:pointer;font-size:.8rem;color:var(--muted);padding:2px 6px;width:100%;text-align:left;margin-top:4px">
-                ${isOpen?'▲ Hide tips':'▼ Tips'}
-              </button>
               <div class="skill-tips ${isOpen?'open':''}" id="tip-${skill.id}">
                 <ul>${skill.tips.map(t=>`<li>${t}</li>`).join('')}</ul>
               </div>
