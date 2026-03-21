@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" id="html-root">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -7,331 +7,374 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    /* ── CSS Variables (light + dark) ── */
-    :root {
-      --blue: #2563eb; --blue-dk: #1d4ed8; --blue-lt: #dbeafe;
-      --green: #16a34a; --green-lt: #dcfce7;
-      --purple: #7c3aed; --purple-lt: #ede9fe;
-      --amber: #d97706; --amber-lt: #fef3c7;
-      --red: #dc2626; --red-lt: #fee2e2;
-      --bg: #f1f5f9; --card: #ffffff;
-      --text: #0f172a; --muted: #64748b; --border: #e2e8f0;
-      --input-bg: #ffffff;
-      --radius: 14px; --shadow: 0 1px 4px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
-      --nav-h: 60px;
-    }
-    [data-dark] {
-      --bg: #0f172a; --card: #1e293b;
-      --text: #f1f5f9; --muted: #94a3b8; --border: #334155;
-      --input-bg: #1e293b;
-      --blue-lt: #1e3a5f; --green-lt: #14532d; --purple-lt: #3b0764;
-      --amber-lt: #451a03; --red-lt: #450a0a;
-      --shadow: 0 1px 4px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
-    }
+/* ── 1. CSS Custom Properties ── */
+:root {
+  --blue:#2563eb; --blue-dk:#1d4ed8; --blue-lt:rgba(37,99,235,.12);
+  --green:#16a34a; --green-lt:rgba(22,163,74,.12);
+  --purple:#7c3aed; --purple-lt:rgba(124,58,237,.12);
+  --amber:#d97706; --amber-lt:rgba(217,119,6,.12);
+  --red:#dc2626; --red-lt:rgba(220,38,38,.12);
+  --bg:#f1f5f9; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
+  --radius:14px; --shadow:0 1px 4px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+  --nav-h:60px; --accent:#2563eb; --accent-lt:rgba(37,99,235,.12);
+  --base-size:16px;
+}
+[data-dark="true"] {
+  --bg:#0f172a; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+  --shadow:0 1px 4px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.2);
+  --blue-lt:rgba(37,99,235,.18); --green-lt:rgba(22,163,74,.18);
+  --purple-lt:rgba(124,58,237,.18); --amber-lt:rgba(217,119,6,.18); --red-lt:rgba(220,38,38,.18);
+  --accent-lt:rgba(37,99,235,.18);
+}
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
-    body { display: flex; flex-direction: column; overflow: hidden; transition: background .2s, color .2s; }
+/* ── 2. Base ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:var(--base-size)}
+body{display:flex;flex-direction:column;overflow:hidden}
 
-    /* ── Header ── */
-    #header { background: var(--card); border-bottom: 1px solid var(--border); padding: 14px 20px 10px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-    #header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: -.3px; }
-    #header h1 span { color: var(--blue); }
-    #live-badge { display: none; background: var(--red); color: #fff; font-size: .65rem; font-weight: 700; padding: 2px 7px; border-radius: 99px; letter-spacing: .5px; animation: pulse 1.4s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+/* ── 3. Header with avatar ── */
+#header{background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px}
+#header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px;flex:1}
+#header h1 span{color:var(--accent)}
+#live-badge{display:none;background:var(--red);color:#fff;font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:99px;letter-spacing:.5px;animation:pulse-badge 1.4s infinite}
+@keyframes pulse-badge{0%,100%{opacity:1}50%{opacity:.45}}
+#avatar{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;letter-spacing:.5px}
 
-    /* ── Bottom Nav (5 tabs) ── */
-    #nav { display: flex; background: var(--card); border-top: 1px solid var(--border); flex-shrink: 0; }
-    .nav-btn { flex: 1; border: none; background: none; cursor: pointer; padding: 6px 2px 8px; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--muted); transition: color .15s; font-size: .58rem; font-weight: 600; letter-spacing: .2px; text-transform: uppercase; }
-    .nav-btn .icon { font-size: 1.3rem; line-height: 1; }
-    .nav-btn.active { color: var(--blue); }
-    .nav-btn.drive-btn.recording { color: var(--red); }
+/* ── 4. Bottom nav with skills badge ── */
+#nav{display:flex;background:var(--card);border-top:1px solid var(--border);flex-shrink:0}
+.nav-btn{flex:1;border:none;background:none;cursor:pointer;padding:8px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);transition:color .15s;font-size:.6rem;font-weight:600;letter-spacing:.2px;text-transform:uppercase;position:relative}
+.nav-btn .icon{font-size:1.35rem;line-height:1}
+.nav-btn.active{color:var(--accent)}
+.nav-btn.drive-btn.recording{color:var(--red)}
+.nav-badge{position:absolute;top:4px;right:calc(50% - 18px);background:var(--red);color:#fff;font-size:.55rem;font-weight:800;padding:1px 5px;border-radius:99px;min-width:16px;text-align:center;display:none}
+.nav-badge.show{display:block}
 
-    /* ── Main ── */
-    #main { flex: 1; position: relative; overflow: hidden; }
-    .view { display: none; position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; }
-    .view.active { display: block; }
-    #drive-view.active { display: flex; overflow: hidden; }
-    .padded { padding: 16px; }
-    .section-title { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 18px 0 8px; }
-    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px; }
+/* ── 5. Main + page transitions ── */
+#main{flex:1;position:relative;overflow:hidden}
+.view{display:none;position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.view.active{display:block;animation:viewIn .22s cubic-bezier(.4,0,.2,1)}
+.view.slide-in-right{animation:slideInRight .22s cubic-bezier(.4,0,.2,1)!important}
+.view.slide-in-left{animation:slideInLeft .22s cubic-bezier(.4,0,.2,1)!important}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes slideInRight{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+@keyframes slideInLeft{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:none}}
+#drive-view.active{display:flex;overflow:hidden}
+.padded{padding:16px}
+.section-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:18px 0 8px}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:12px}
 
-    /* ── Dashboard ── */
-    .stats-hero { display: flex; align-items: center; gap: 20px; }
-    .ring-wrap { position: relative; flex-shrink: 0; }
-    .ring-wrap .ring-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .ring-wrap .ring-pct { font-size: 1.4rem; font-weight: 800; line-height: 1; }
-    .ring-wrap .ring-sub { font-size: .65rem; color: var(--muted); margin-top: 2px; }
-    .hero-right { flex: 1; }
-    .hero-right h2 { font-size: 1.3rem; font-weight: 800; }
-    .hero-right .sub { font-size: .8rem; color: var(--muted); margin-top: 2px; }
-    .mini-bar-wrap { margin-top: 12px; }
-    .mini-bar-label { display: flex; justify-content: space-between; font-size: .72rem; margin-bottom: 4px; }
-    .mini-bar-track { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; }
-    .mini-bar-fill { height: 100%; border-radius: 99px; transition: width .5s; }
-    .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    .stat-box { text-align: center; }
-    .stat-box .val { font-size: 1.25rem; font-weight: 800; }
-    .stat-box .lbl { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
-    .session-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
-    .session-row:last-child { border-bottom: none; padding-bottom: 0; }
-    .session-row .s-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
-    .s-day { background: var(--amber-lt); }
-    .s-night { background: var(--purple-lt); }
-    .session-row .s-info { flex: 1; min-width: 0; }
-    .session-row .s-title { font-weight: 600; font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .session-row .s-meta { font-size: .72rem; color: var(--muted); margin-top: 2px; }
-    .session-row .s-dur { font-size: .85rem; font-weight: 700; color: var(--blue); flex-shrink: 0; }
-    .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
-    .empty-state .e-icon { font-size: 2.5rem; margin-bottom: 10px; }
-    .start-fab { display: block; width: 100%; background: var(--blue); color: #fff; border: none; border-radius: var(--radius); padding: 15px; font-size: 1rem; font-weight: 700; cursor: pointer; text-align: center; margin-bottom: 12px; }
-    .start-fab:active { background: var(--blue-dk); }
+/* ── 6. Dashboard ── */
+.stats-hero{display:flex;align-items:center;gap:16px}
+.ring-wrap{position:relative;flex-shrink:0}
+.ring-wrap .ring-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-pct{font-size:1.35rem;font-weight:800;line-height:1}
+.ring-sub{font-size:.6rem;color:var(--muted);margin-top:2px}
+.ring-circle-progress{transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1)}
+.hero-right{flex:1;min-width:0}
+.hero-right h2{font-size:1.25rem;font-weight:800}
+.hero-right .sub{font-size:.78rem;color:var(--muted);margin-top:2px}
+.mini-bar-wrap{margin-top:10px}
+.mini-bar-label{display:flex;justify-content:space-between;font-size:.7rem;margin-bottom:4px}
+.mini-bar-track{height:7px;background:var(--border);border-radius:99px;overflow:hidden}
+.mini-bar-fill{height:100%;border-radius:99px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.stat-box{text-align:center}
+.stat-box .val{font-size:1.2rem;font-weight:800}
+.stat-box .lbl{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.streak-badge{display:inline-flex;align-items:center;gap:5px;background:var(--amber-lt);color:var(--amber);font-size:.75rem;font-weight:700;padding:5px 11px;border-radius:99px;margin-bottom:12px}
+.recent-skills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.skill-chip{background:var(--accent-lt);color:var(--accent);font-size:.7rem;font-weight:600;padding:4px 10px;border-radius:99px}
+.session-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;position:relative;overflow:hidden;user-select:none;transition:opacity .2s}
+.session-row:last-child{border-bottom:none;padding-bottom:0}
+.session-row.old{opacity:.65}
+.session-row .s-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.s-day{background:var(--amber-lt)}
+.s-night{background:var(--purple-lt)}
+.session-row .s-info{flex:1;min-width:0}
+.session-row .s-title{font-weight:600;font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.session-row .s-meta{font-size:.7rem;color:var(--muted);margin-top:2px}
+.session-row .s-dur{font-size:.84rem;font-weight:700;color:var(--accent);flex-shrink:0}
+.swipe-delete-bg{position:absolute;right:0;top:0;bottom:0;width:80px;background:var(--red);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;font-weight:700;transform:translateX(100%);transition:transform .15s;border-radius:0 10px 10px 0}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state svg{width:80px;height:80px;margin-bottom:12px;opacity:.35}
+.empty-state .e-lbl{font-size:.9rem;margin-top:4px}
+.start-fab{display:block;width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:14px;font-size:.95rem;font-weight:700;cursor:pointer;text-align:center;margin-bottom:12px}
+/* Skeleton */
+.skeleton-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:12px;overflow:hidden}
+.skel{border-radius:8px;background:linear-gradient(90deg,var(--border) 25%,var(--bg) 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-    /* ── Milestone badges ── */
-    .milestone-badges { display: flex; flex-wrap: wrap; gap: 10px; }
-    .milestone-badge { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 14px; border-radius: var(--radius); border: 2px solid var(--border); background: var(--card); min-width: 70px; text-align: center; }
-    .milestone-badge.earned { border-color: var(--green); background: var(--green-lt); }
-    .milestone-badge.locked { opacity: .5; }
-    .milestone-badge .mb-icon { font-size: 1.6rem; }
-    .milestone-badge .mb-label { font-size: .62rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
-    .milestone-badge.earned .mb-label { color: var(--green); }
+/* ── 7. Drive view ── */
+#drive-view{flex-direction:column}
+#drive-map{flex:1;min-height:0;z-index:0}
+#drive-panel{background:var(--card);border-top:1px solid var(--border);padding:12px 16px 16px;flex-shrink:0;z-index:10}
+#drive-pre{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:40px 20px;text-align:center}
+#drive-pre h2{font-size:1.4rem;font-weight:800;margin-bottom:8px}
+#drive-pre p{color:var(--muted);font-size:.85rem;margin-bottom:24px;line-height:1.5}
+.btn-big{width:100%;padding:16px;font-size:1rem;font-weight:700;border:none;border-radius:var(--radius);cursor:pointer}
+.btn-start{background:var(--green);color:#fff}
+.btn-stop{background:var(--red);color:#fff}
+.btn-big:active{opacity:.85}
+.speedometer{text-align:center;margin-bottom:12px}
+.speedometer .speed-val{font-size:3.5rem;font-weight:900;line-height:1;color:var(--accent)}
+.speedometer .speed-unit{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-top:2px}
+.drive-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.ds-box{text-align:center}
+.ds-box .dv{font-size:1rem;font-weight:800}
+.ds-box .dl{font-size:.58rem;text-transform:uppercase;color:var(--muted);letter-spacing:.4px}
+.drive-meta{display:flex;gap:6px;align-items:center;font-size:.75rem;color:var(--muted);margin-bottom:12px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:3px;background:var(--accent-lt);color:var(--accent);font-size:.62rem;font-weight:700;padding:3px 8px;border-radius:99px;flex-shrink:0}
+.badge.night{background:var(--purple-lt);color:var(--purple)}
+.badge.day{background:var(--amber-lt);color:var(--amber)}
+/* Compass overlay */
+#compass{position:absolute;top:12px;right:12px;z-index:500;width:44px;height:44px;background:var(--card);border-radius:50%;box-shadow:var(--shadow);display:none;align-items:center;justify-content:center;transition:transform .3s}
+#compass.visible{display:flex}
+#compass svg{width:28px;height:28px}
+/* Pulse marker */
+.pulse-marker-container{position:relative}
+.pulse-dot{width:14px;height:14px;background:var(--accent);border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 0 rgba(37,99,235,.5);animation:pulse-map 1.6s infinite}
+@keyframes pulse-map{0%{box-shadow:0 0 0 0 rgba(37,99,235,.5)}70%{box-shadow:0 0 0 10px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
 
-    /* ── Weekly Chart ── */
-    .chart-svg text { fill: var(--muted); }
-    .chart-legend { display: flex; gap: 16px; justify-content: center; margin-top: 8px; font-size: .72rem; color: var(--muted); align-items: center; }
-    .legend-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+/* ── 8. Skills view ── */
+.skill-category-header{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:14px 0 6px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.skill-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;flex-wrap:wrap}
+.skill-row:last-child{border-bottom:none}
+.skill-label{flex:1;font-size:.88rem;font-weight:500}
+.skill-btns{display:flex;gap:6px;flex-shrink:0}
+.skill-btn{border:1.5px solid var(--border);background:var(--card);border-radius:8px;padding:5px 10px;font-size:.7rem;font-weight:600;cursor:pointer;color:var(--muted);transition:all .15s}
+.skill-btn.in_progress{background:var(--amber-lt);border-color:var(--amber);color:var(--amber)}
+.skill-btn.mastered{background:var(--green-lt);border-color:var(--green);color:var(--green)}
+.skill-tips{width:100%;background:var(--bg);border-radius:10px;padding:10px 12px;margin-top:4px;display:none}
+.skill-tips.open{display:block}
+.skill-tips ul{padding-left:16px;font-size:.78rem;color:var(--muted);line-height:1.8}
+.skills-summary{display:flex;gap:10px;margin-bottom:14px}
+.skills-summary-box{flex:1;text-align:center;background:var(--card);border-radius:12px;padding:12px 8px;box-shadow:var(--shadow)}
+.skills-summary-box .sv{font-size:1.4rem;font-weight:800}
+.skills-summary-box .sl{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.suggest-btn{width:100%;background:var(--accent-lt);color:var(--accent);border:1.5px solid var(--accent);border-radius:var(--radius);padding:12px;font-size:.9rem;font-weight:700;cursor:pointer;margin-bottom:14px}
 
-    /* ── Drive View ── */
-    #drive-view { flex-direction: column; }
-    #drive-map { flex: 1; min-height: 0; z-index: 0; }
-    #drive-panel { background: var(--card); border-top: 1px solid var(--border); padding: 14px 16px 16px; flex-shrink: 0; z-index: 10; max-height: 55vh; overflow-y: auto; }
-    #drive-pre { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px 20px; text-align: center; }
-    #drive-pre h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; }
-    #drive-pre p { color: var(--muted); font-size: .88rem; margin-bottom: 28px; line-height: 1.5; }
-    .btn-big { width: 100%; padding: 17px; font-size: 1.05rem; font-weight: 700; border: none; border-radius: var(--radius); cursor: pointer; }
-    .btn-start { background: var(--green); color: #fff; }
-    .btn-stop { background: var(--red); color: #fff; }
-    .btn-big:active { opacity: .85; }
-    .drive-stats { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-    .ds-box { text-align: center; }
-    .ds-box .dv { font-size: 1.1rem; font-weight: 800; }
-    .ds-box .dl { font-size: .6rem; text-transform: uppercase; color: var(--muted); letter-spacing: .4px; }
-    .drive-meta { display: flex; gap: 8px; align-items: center; font-size: .78rem; color: var(--muted); margin-bottom: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .drive-meta span { overflow: hidden; text-overflow: ellipsis; }
-    .badge { display: inline-flex; align-items: center; gap: 4px; background: var(--blue-lt); color: var(--blue); font-size: .65rem; font-weight: 700; padding: 3px 8px; border-radius: 99px; letter-spacing: .3px; flex-shrink: 0; }
-    .badge.night { background: var(--purple-lt); color: var(--purple); }
-    .badge.day { background: var(--amber-lt); color: var(--amber); }
-    #locate-btn { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: .78rem; cursor: pointer; color: var(--muted); margin-bottom: 14px; }
+/* ── 9. History with monthly groups + search + sort ── */
+.history-toolbar{display:flex;gap:8px;margin-bottom:10px;align-items:center}
+.history-search{flex:1;border:1.5px solid var(--border);background:var(--card);border-radius:10px;padding:9px 12px;font-size:.85rem;color:var(--text);outline:none}
+.history-search:focus{border-color:var(--accent)}
+.history-sort{border:1.5px solid var(--border);background:var(--card);border-radius:10px;padding:9px 10px;font-size:.8rem;color:var(--text);outline:none;cursor:pointer}
+.filter-bar{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px}
+.filter-chip{border:1px solid var(--border);background:var(--card);border-radius:99px;padding:5px 13px;font-size:.73rem;cursor:pointer;white-space:nowrap;flex-shrink:0;font-weight:500;color:var(--text)}
+.filter-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.month-header{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0 6px;display:flex;align-items:center;justify-content:space-between}
+.month-header-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)}
+.month-header-total{font-size:.72rem;font-weight:700;color:var(--accent)}
 
-    /* ── Wrap-up panel ── */
-    .wrapup-title { font-size: 1rem; font-weight: 800; margin-bottom: 14px; }
-    .wrapup-summary { display: flex; gap: 12px; margin-bottom: 16px; }
-    .wrapup-stat { flex: 1; text-align: center; background: var(--bg); border-radius: 10px; padding: 10px 6px; }
-    .wrapup-stat .ws-val { font-size: 1.2rem; font-weight: 800; }
-    .wrapup-stat .ws-lbl { font-size: .6rem; text-transform: uppercase; color: var(--muted); letter-spacing: .4px; }
+/* ── 10. Settings ── */
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:.75rem;font-weight:600;margin-bottom:6px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.form-group input,.form-group select,.form-group textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:.9rem;background:var(--card);color:var(--text);outline:none;font-family:inherit}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent)}
+.req-display{display:flex;gap:10px;margin-top:8px}
+.req-box{flex:1;background:var(--accent-lt);border-radius:10px;padding:10px;text-align:center}
+.req-box .rv{font-size:1.3rem;font-weight:800;color:var(--accent)}
+.req-box .rl{font-size:.62rem;color:var(--accent);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.req-box.night-box{background:var(--purple-lt)}
+.req-box.night-box .rv,.req-box.night-box .rl{color:var(--purple)}
+.note-box{background:var(--amber-lt);border-radius:10px;padding:10px 12px;font-size:.76rem;color:var(--amber);margin-top:8px;line-height:1.5}
+.btn-row{display:flex;gap:10px}
+.btn-outline{flex:1;border:1.5px solid var(--border);background:var(--card);border-radius:10px;padding:12px;font-size:.86rem;font-weight:600;cursor:pointer;color:var(--text)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{flex:1;border:1.5px solid var(--red);background:var(--card);border-radius:10px;padding:12px;font-size:.86rem;font-weight:600;cursor:pointer;color:var(--red)}
+.btn-save{width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:14px;font-size:.93rem;font-weight:700;cursor:pointer;margin-top:8px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.toggle{position:relative;width:46px;height:26px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:99px;cursor:pointer;transition:background .2s}
+.toggle-slider::before{content:'';position:absolute;height:20px;width:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle input:checked+.toggle-slider{background:var(--accent)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(20px)}
+.color-swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.color-swatch{width:36px;height:36px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:border-color .15s}
+.color-swatch.active{border-color:var(--text)}
+.font-size-btns{display:flex;gap:8px}
+.font-size-btn{flex:1;border:1.5px solid var(--border);background:var(--card);border-radius:10px;padding:10px;text-align:center;cursor:pointer;font-weight:600;color:var(--muted)}
+.font-size-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-lt)}
 
-    /* ── Skills View ── */
-    #skills-view { }
-    .skill-progress-bar { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; margin-bottom: 4px; }
-    .skill-progress-fill { height: 100%; border-radius: 99px; background: var(--blue); transition: width .4s; }
-    .skill-progress-label { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); margin-bottom: 14px; }
-    .skill-cat-title { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 16px 0 8px; }
-    .skill-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
-    .skill-row:last-child { border-bottom: none; }
-    .skill-name { flex: 1; font-size: .88rem; font-weight: 500; }
-    .skill-btns { display: flex; gap: 5px; }
-    .skill-btn { border: 1.5px solid var(--border); background: var(--card); color: var(--muted); border-radius: 8px; padding: 4px 9px; font-size: .7rem; font-weight: 600; cursor: pointer; transition: all .15s; }
-    .skill-btn.active-practiced { border-color: var(--amber); background: var(--amber-lt); color: var(--amber); }
-    .skill-btn.active-mastered { border-color: var(--green); background: var(--green-lt); color: var(--green); }
+/* ── 11. Bottom sheet modals ── */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.5)}
+.modal-overlay.open{display:flex;align-items:flex-end}
+.modal-sheet{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-height:90vh;overflow-y:auto;transform:translateY(100%);transition:transform .32s cubic-bezier(.4,0,.2,1)}
+.modal-overlay.open .modal-sheet{transform:translateY(0)}
+.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:99px;margin:10px auto 0}
+.modal-header{padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.modal-header h3{font-size:.98rem;font-weight:700}
+.close-btn{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);padding:4px;line-height:1}
+#detail-map{height:200px}
+.modal-body{padding:16px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.detail-item .di-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:600;margin-bottom:2px}
+.detail-item .di-val{font-size:.88rem;font-weight:600}
+.notes-label{font-size:.76rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:14px 0 6px}
+#detail-notes{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:.86rem;min-height:70px;resize:vertical;font-family:inherit;outline:none;background:var(--card);color:var(--text)}
+#detail-notes:focus{border-color:var(--accent)}
+.modal-actions{padding:12px 16px 16px;display:flex;gap:8px;border-top:1px solid var(--border)}
+.btn-del{flex:1;border:1.5px solid var(--red);color:var(--red);background:none;border-radius:10px;padding:11px;font-weight:600;cursor:pointer}
+.btn-save-notes{flex:2;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:11px;font-weight:600;cursor:pointer}
+/* Elevation profile */
+.elevation-wrap{margin:12px 0}
+.elevation-wrap .di-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:600;margin-bottom:6px}
+/* Route replay */
+.replay-btn{background:var(--accent-lt);color:var(--accent);border:1.5px solid var(--accent);border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;margin:8px 16px 0}
 
-    /* ── History ── */
-    .filter-bar { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px; }
-    .filter-chip { border: 1px solid var(--border); background: var(--card); border-radius: 99px; padding: 5px 13px; font-size: .75rem; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-weight: 500; color: var(--text); }
-    .filter-chip.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+/* ── 12. Onboarding modal ── */
+#onboard-overlay{display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6);align-items:flex-end}
+#onboard-overlay.open{display:flex}
+#onboard-sheet{background:var(--card);border-radius:20px 20px 0 0;width:100%;padding:24px 20px 32px;transform:translateY(100%);transition:transform .32s cubic-bezier(.4,0,.2,1)}
+#onboard-overlay.open #onboard-sheet{transform:translateY(0)}
+.onboard-step{display:none}
+.onboard-step.active{display:block}
+.onboard-icon{font-size:3rem;text-align:center;margin-bottom:12px}
+.onboard-title{font-size:1.3rem;font-weight:800;text-align:center;margin-bottom:6px}
+.onboard-sub{font-size:.85rem;color:var(--muted);text-align:center;margin-bottom:24px;line-height:1.5}
+.onboard-dots{display:flex;justify-content:center;gap:6px;margin-top:20px}
+.onboard-dot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:background .2s}
+.onboard-dot.active{background:var(--accent)}
 
-    /* ── Settings ── */
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-size: .78rem; font-weight: 600; margin-bottom: 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
-    .form-group input, .form-group select { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: .92rem; background: var(--input-bg); color: var(--text); outline: none; }
-    .form-group input:focus, .form-group select:focus { border-color: var(--blue); }
-    .req-display { display: flex; gap: 10px; margin-top: 8px; }
-    .req-box { flex: 1; background: var(--blue-lt); border-radius: 10px; padding: 10px; text-align: center; }
-    .req-box .rv { font-size: 1.4rem; font-weight: 800; color: var(--blue); }
-    .req-box .rl { font-size: .65rem; color: var(--blue); text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
-    .req-box.night { background: var(--purple-lt); }
-    .req-box.night .rv, .req-box.night .rl { color: var(--purple); }
-    .note-box { background: var(--amber-lt); border-radius: 10px; padding: 10px 12px; font-size: .78rem; color: var(--amber); margin-top: 8px; line-height: 1.5; }
-    .btn-row { display: flex; gap: 10px; }
-    .btn-outline { flex: 1; border: 1.5px solid var(--border); background: var(--card); border-radius: 10px; padding: 12px; font-size: .88rem; font-weight: 600; cursor: pointer; color: var(--text); }
-    .btn-outline:hover { border-color: var(--blue); color: var(--blue); }
-    .btn-danger { flex: 1; border: 1.5px solid var(--red); background: var(--card); border-radius: 10px; padding: 12px; font-size: .88rem; font-weight: 600; cursor: pointer; color: var(--red); }
-    .btn-save { width: 100%; background: var(--blue); color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: .95rem; font-weight: 700; cursor: pointer; margin-top: 8px; }
-    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
-    .toggle-row label { font-size: .88rem; font-weight: 500; color: var(--text); }
-    .toggle { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
-    .toggle input { opacity: 0; width: 0; height: 0; }
-    .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 99px; cursor: pointer; transition: background .2s; }
-    .toggle-slider::before { content: ''; position: absolute; height: 20px; width: 20px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform .2s; }
-    .toggle input:checked + .toggle-slider { background: var(--blue); }
-    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+/* ── 13. Milestones ── */
+.milestones-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:4px}
+.milestone-badge{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--card);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow);opacity:.38;transition:opacity .3s}
+.milestone-badge.earned{opacity:1}
+.milestone-badge .m-icon{font-size:1.5rem}
+.milestone-badge .m-label{font-size:.58rem;color:var(--muted);text-align:center;white-space:nowrap;font-weight:600}
 
-    /* ── Modal ── */
-    #modal, #manual-modal { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.45); overflow-y: auto; }
-    #modal.open, #manual-modal.open { display: block; }
-    .modal-card { background: var(--card); margin: 20px 14px 30px; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
-    .modal-header { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
-    .modal-header h3 { font-size: 1rem; font-weight: 700; }
-    .close-btn { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--muted); padding: 4px; line-height: 1; }
-    #detail-map { height: 220px; }
-    .modal-body { padding: 16px; }
-    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .detail-item .di-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
-    .detail-item .di-val { font-size: .9rem; font-weight: 600; }
-    .notes-label { font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin: 14px 0 6px; }
-    #detail-notes { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: .88rem; min-height: 70px; resize: vertical; font-family: inherit; outline: none; background: var(--input-bg); color: var(--text); }
-    #detail-notes:focus { border-color: var(--blue); }
-    .modal-actions { padding: 12px 16px 16px; display: flex; gap: 10px; border-top: 1px solid var(--border); }
-    .btn-del { flex: 1; border: 1.5px solid var(--red); color: var(--red); background: none; border-radius: 10px; padding: 11px; font-weight: 600; cursor: pointer; }
-    .btn-save-notes { flex: 2; background: var(--blue); color: #fff; border: none; border-radius: 10px; padding: 11px; font-weight: 600; cursor: pointer; }
+/* ── 14. Goal card with collapse ── */
+.goal-card-header{display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.goal-collapse-btn{background:none;border:none;font-size:.9rem;color:var(--muted);cursor:pointer;padding:2px 6px;line-height:1}
+.goal-card-body{margin-top:10px}
 
-    /* ── Misc ── */
-    .chip { display: inline-flex; align-items: center; gap: 4px; background: var(--blue-lt); color: var(--blue); font-size: .65rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
-    .chip.night { background: var(--purple-lt); color: var(--purple); }
-    .toast { position: fixed; bottom: calc(var(--nav-h) + 14px); left: 50%; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 10px 18px; border-radius: 99px; font-size: .82rem; font-weight: 500; z-index: 9999; opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; }
-    .toast.show { opacity: 1; }
-    .leaflet-control-attribution { font-size: 9px !important; }
-    textarea.modal-input { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: .88rem; min-height: 60px; resize: vertical; font-family: inherit; outline: none; background: var(--input-bg); color: var(--text); }
-    .inline-input { width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: .92rem; outline: none; background: var(--input-bg); color: var(--text); }
-    .inline-input:focus { border-color: var(--blue); }
-    select.inline-input { appearance: auto; }
-    @media (max-width: 400px) { .drive-stats { grid-template-columns: 1fr 1fr; } }
+/* ── 15. Weekly chart ── */
+.chart-wrap{overflow-x:auto;padding-bottom:4px}
+.chart-bar-label{font-size:.62rem;color:var(--muted);text-align:center;margin-top:4px}
+
+/* ── 16. Misc ── */
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--accent-lt);color:var(--accent);font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:99px}
+.chip.night{background:var(--purple-lt);color:var(--purple)}
+.toast{position:fixed;bottom:calc(var(--nav-h) + 14px);left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 18px;border-radius:99px;font-size:.8rem;font-weight:500;z-index:999;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.leaflet-control-attribution{font-size:9px!important}
+[data-dark="true"] .leaflet-container{background:#1e293b}
+@media(max-width:380px){.drive-stats{grid-template-columns:1fr 1fr}.stat-grid{grid-template-columns:1fr 1fr 1fr}}
+@media print{#header,#nav,#modal,#manual-modal,#onboard-overlay{display:none!important}.view{display:block!important;position:static!important;overflow:visible!important}#main{overflow:visible!important;position:static!important}}
   </style>
 </head>
 <body>
-
 <div id="header">
   <h1>Drive<span>Log</span></h1>
   <span id="live-badge">● REC</span>
+  <div id="avatar">?</div>
 </div>
 
 <div id="main">
-  <!-- Dashboard -->
-  <div id="dashboard-view" class="view padded">
-    <div id="dash-content"></div>
-  </div>
-
-  <!-- Drive -->
+  <div id="dashboard-view" class="view padded"><div id="dash-content"></div></div>
   <div id="drive-view" class="view">
     <div id="drive-map"></div>
+    <div id="compass" id="compass-el">
+      <svg viewBox="0 0 24 24" fill="none"><polygon points="12,2 15,11 12,9 9,11" fill="#dc2626"/><polygon points="12,22 9,13 12,15 15,13" fill="#94a3b8"/></svg>
+    </div>
     <div id="drive-panel"></div>
   </div>
-
-  <!-- Skills -->
-  <div id="skills-view" class="view padded">
-    <div id="skills-content"></div>
-  </div>
-
-  <!-- History -->
-  <div id="history-view" class="view padded">
-    <div id="history-content"></div>
-  </div>
-
-  <!-- Settings -->
-  <div id="settings-view" class="view padded">
-    <div id="settings-content"></div>
-  </div>
+  <div id="skills-view" class="view padded"><div id="skills-content"></div></div>
+  <div id="history-view" class="view padded"><div id="history-content"></div></div>
+  <div id="settings-view" class="view padded"><div id="settings-content"></div></div>
 </div>
 
 <nav id="nav">
-  <button class="nav-btn active" data-view="dashboard">
-    <span class="icon">📊</span>Progress
-  </button>
-  <button class="nav-btn drive-btn" data-view="drive">
-    <span class="icon">🚗</span>Drive
-  </button>
-  <button class="nav-btn" data-view="skills">
-    <span class="icon">✅</span>Skills
-  </button>
-  <button class="nav-btn" data-view="history">
-    <span class="icon">📋</span>History
-  </button>
-  <button class="nav-btn" data-view="settings">
-    <span class="icon">⚙️</span>Settings
-  </button>
+  <button class="nav-btn active" data-view="dashboard" data-idx="0"><span class="icon">📊</span>Progress</button>
+  <button class="nav-btn drive-btn" data-view="drive" data-idx="1"><span class="icon">🚗</span>Drive</button>
+  <button class="nav-btn" data-view="skills" data-idx="2"><span class="icon">✅</span>Skills<span class="nav-badge" id="skills-nav-badge"></span></button>
+  <button class="nav-btn" data-view="history" data-idx="3"><span class="icon">📋</span>History</button>
+  <button class="nav-btn" data-view="settings" data-idx="4"><span class="icon">⚙️</span>Settings</button>
 </nav>
 
-<!-- Session Detail Modal -->
-<div id="modal">
-  <div class="modal-card">
+<!-- Session detail modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
     <div class="modal-header">
       <h3 id="modal-title">Session Detail</h3>
       <button class="close-btn" onclick="closeModal()">✕</button>
     </div>
     <div id="detail-map"></div>
+    <button class="replay-btn" id="replay-btn" onclick="startReplay()" style="display:none">▶ Replay Route</button>
     <div class="modal-body" id="modal-body"></div>
     <div class="modal-actions">
       <button class="btn-del" id="modal-del-btn">Delete</button>
       <button class="btn-outline" id="modal-edit-btn" style="flex:1">Edit</button>
-      <button class="btn-save-notes" id="modal-save-btn">Save Notes</button>
+      <button class="btn-save-notes" id="modal-save-btn">Save</button>
     </div>
   </div>
 </div>
 
-<!-- Manual Entry Modal -->
-<div id="manual-modal">
-  <div class="modal-card">
+<!-- Manual / edit modal -->
+<div class="modal-overlay" id="manual-modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
     <div class="modal-header">
       <h3 id="manual-modal-title">Add Drive Manually</h3>
       <button class="close-btn" onclick="closeManualModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group">
-        <label>Date</label>
-        <input type="date" id="m-date" class="inline-input">
-      </div>
+      <div class="form-group"><label>Date</label><input type="date" id="m-date" style="color-scheme:light dark"></div>
       <div style="display:flex;gap:10px">
-        <div class="form-group" style="flex:1">
-          <label>Start Time</label>
-          <input type="time" id="m-start" class="inline-input">
-        </div>
-        <div class="form-group" style="flex:1">
-          <label>End Time</label>
-          <input type="time" id="m-end" class="inline-input">
-        </div>
+        <div class="form-group" style="flex:1"><label>Start Time</label><input type="time" id="m-start"></div>
+        <div class="form-group" style="flex:1"><label>End Time</label><input type="time" id="m-end"></div>
       </div>
-      <div class="form-group">
-        <label>Or enter duration directly</label>
+      <div class="form-group"><label>Or Duration</label>
         <div style="display:flex;gap:10px">
-          <input type="number" id="m-dur-h" min="0" max="23" placeholder="Hours" class="inline-input" style="flex:1">
-          <input type="number" id="m-dur-m" min="0" max="59" placeholder="Minutes" class="inline-input" style="flex:1">
+          <input type="number" id="m-dur-h" min="0" max="23" placeholder="Hours" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:.9rem;outline:none;background:var(--card);color:var(--text)">
+          <input type="number" id="m-dur-m" min="0" max="59" placeholder="Mins" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:.9rem;outline:none;background:var(--card);color:var(--text)">
         </div>
       </div>
-      <div class="form-group">
-        <label>Conditions</label>
-        <select id="m-daynight" class="inline-input">
-          <option value="day">☀️ Day</option>
-          <option value="night">🌙 Night</option>
+      <div class="form-group"><label>Conditions</label>
+        <select id="m-daynight" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:.9rem;outline:none;background:var(--card);color:var(--text)">
+          <option value="day">☀️ Day</option><option value="night">🌙 Night</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>Supervisor Name (optional)</label>
-        <input type="text" id="m-supervisor" placeholder="e.g. Jane Smith" class="inline-input">
-      </div>
-      <div class="form-group">
-        <label>Supervisor License # (optional)</label>
-        <input type="text" id="m-supervisor-lic" placeholder="License number" class="inline-input">
-      </div>
-      <div class="form-group">
-        <label>Location (optional)</label>
-        <input type="text" id="m-location" placeholder="e.g. Springfield, IL" class="inline-input">
-      </div>
-      <div class="form-group">
-        <label>Notes (optional)</label>
-        <textarea id="m-notes" placeholder="Add notes…" class="modal-input"></textarea>
-      </div>
+      <div class="form-group"><label>Supervisor Name</label><input type="text" id="m-supervisor" placeholder="e.g. Jane Smith"></div>
+      <div class="form-group"><label>Supervisor License #</label><input type="text" id="m-license" placeholder="Optional"></div>
+      <div class="form-group"><label>Location (optional)</label><input type="text" id="m-location" placeholder="e.g. Springfield, IL"></div>
+      <div class="form-group"><label>Notes (optional)</label><textarea id="m-notes" rows="2" placeholder="Add notes…"></textarea></div>
     </div>
     <div class="modal-actions">
       <button class="btn-save-notes" style="flex:1" onclick="saveManualDrive()">Save Drive</button>
+    </div>
+  </div>
+</div>
+
+<!-- Onboarding -->
+<div id="onboard-overlay">
+  <div id="onboard-sheet">
+    <div class="onboard-step active" id="ob-1">
+      <div class="onboard-icon">🚗</div>
+      <div class="onboard-title">Welcome to DriveLog</div>
+      <div class="onboard-sub">Track every supervised drive toward your license. What's the driver's name?</div>
+      <div class="form-group"><input type="text" id="ob-name" placeholder="Driver's first name" style="text-align:center;font-size:1.1rem;font-weight:700"></div>
+      <button class="btn-save" onclick="obNext(1)">Continue →</button>
+    </div>
+    <div class="onboard-step" id="ob-2">
+      <div class="onboard-icon">📍</div>
+      <div class="onboard-title">Which state?</div>
+      <div class="onboard-sub">We'll set the right hour requirements automatically.</div>
+      <div class="form-group"><select id="ob-state" style="font-size:1rem;text-align:center"></select></div>
+      <button class="btn-save" onclick="obNext(2)">Continue →</button>
+    </div>
+    <div class="onboard-step" id="ob-3">
+      <div class="onboard-icon">🎯</div>
+      <div class="onboard-title">Set a goal date</div>
+      <div class="onboard-sub">Optional — we'll tell you how many hours per week to stay on track.</div>
+      <div class="form-group"><input type="date" id="ob-goal" style="color-scheme:light dark;font-size:1rem;text-align:center"></div>
+      <button class="btn-save" onclick="obFinish()">Get Started 🚀</button>
+    </div>
+    <div class="onboard-dots">
+      <div class="onboard-dot active" id="ob-dot-0"></div>
+      <div class="onboard-dot" id="ob-dot-1"></div>
+      <div class="onboard-dot" id="ob-dot-2"></div>
     </div>
   </div>
 </div>
@@ -341,1422 +384,1375 @@
 <script>
 'use strict';
 
-// ═══════════════════════════════════════════════════════
-// STATE REQUIREMENTS (source: IIHS + individual state DMVs)
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// STATE REQUIREMENTS
+// ═══════════════════════════════════════════════════
 const STATE_REQS = {
-  "AL":{ name:"Alabama",           total:50,  night:10 },
-  "AK":{ name:"Alaska",            total:40,  night:10,  note:"10 hrs must be at night or in inclement weather" },
-  "AZ":{ name:"Arizona",           total:30,  night:10 },
-  "AR":{ name:"Arkansas",          total:0,   night:0,   note:"No hour requirement — must hold permit 6 months with clean record" },
-  "CA":{ name:"California",        total:50,  night:10 },
-  "CO":{ name:"Colorado",          total:50,  night:10 },
-  "CT":{ name:"Connecticut",       total:40,  night:10 },
-  "DE":{ name:"Delaware",          total:50,  night:10 },
-  "DC":{ name:"District of Columbia", total:40, night:10 },
-  "FL":{ name:"Florida",           total:50,  night:10 },
-  "GA":{ name:"Georgia",           total:40,  night:6  },
-  "HI":{ name:"Hawaii",            total:50,  night:10 },
-  "ID":{ name:"Idaho",             total:50,  night:10 },
-  "IL":{ name:"Illinois",          total:50,  night:10 },
-  "IN":{ name:"Indiana",           total:50,  night:10 },
-  "IA":{ name:"Iowa",              total:20,  night:2  },
-  "KS":{ name:"Kansas",            total:50,  night:10,  note:"25 hrs needed for restricted license; 50 total (10 night) to remove all restrictions" },
-  "KY":{ name:"Kentucky",          total:60,  night:10 },
-  "LA":{ name:"Louisiana",         total:50,  night:15 },
-  "ME":{ name:"Maine",             total:70,  night:10 },
-  "MD":{ name:"Maryland",          total:60,  night:10 },
-  "MA":{ name:"Massachusetts",     total:40,  night:1,   note:"Night requirement is 30 minutes; total may reduce to 30 hrs with an approved skills program" },
-  "MI":{ name:"Michigan",          total:50,  night:10 },
-  "MN":{ name:"Minnesota",         total:50,  night:15,  note:"Total reduces to 40 hrs if parent completes state-approved awareness course" },
-  "MS":{ name:"Mississippi",       total:50,  night:0,   note:"Certified by parent affidavit; no specific night hour requirement stated" },
-  "MO":{ name:"Missouri",          total:40,  night:10 },
-  "MT":{ name:"Montana",           total:50,  night:10,  note:"75 hrs (15 night) if using parent-taught online-only course" },
-  "NE":{ name:"Nebraska",          total:50,  night:10 },
-  "NV":{ name:"Nevada",            total:50,  night:10 },
-  "NH":{ name:"New Hampshire",     total:40,  night:10 },
-  "NJ":{ name:"New Jersey",        total:50,  night:10,  note:"Hour requirement enacted Feb 1, 2025 (applies to permits issued on/after that date)" },
-  "NM":{ name:"New Mexico",        total:50,  night:10 },
-  "NY":{ name:"New York",          total:50,  night:15 },
-  "NC":{ name:"North Carolina",    total:60,  night:10,  note:"60 hrs (10 night) for Level 1→2; additional 12 hrs (6 night) for Level 2→3" },
-  "ND":{ name:"North Dakota",      total:50,  night:10 },
-  "OH":{ name:"Ohio",              total:50,  night:10 },
-  "OK":{ name:"Oklahoma",          total:50,  night:10 },
-  "OR":{ name:"Oregon",            total:50,  night:0,   note:"100 hrs required without driver ed; no separate night sub-requirement" },
-  "PA":{ name:"Pennsylvania",      total:65,  night:10,  note:"Also requires 5 hrs in inclement/poor weather" },
-  "RI":{ name:"Rhode Island",      total:50,  night:10 },
-  "SC":{ name:"South Carolina",    total:40,  night:10 },
-  "SD":{ name:"South Dakota",      total:50,  night:10,  note:"Also requires 10 hrs in inclement weather" },
-  "TN":{ name:"Tennessee",         total:50,  night:10 },
-  "TX":{ name:"Texas",             total:30,  night:10 },
-  "UT":{ name:"Utah",              total:40,  night:10 },
-  "VT":{ name:"Vermont",           total:40,  night:10 },
-  "VA":{ name:"Virginia",          total:45,  night:15 },
-  "WA":{ name:"Washington",        total:50,  night:10 },
-  "WV":{ name:"West Virginia",     total:50,  night:10 },
-  "WI":{ name:"Wisconsin",         total:50,  night:10 },
-  "WY":{ name:"Wyoming",           total:50,  night:10 },
+  "AL":{name:"Alabama",total:50,night:10},
+  "AK":{name:"Alaska",total:40,night:10,note:"10 hrs must be at night or in inclement weather"},
+  "AZ":{name:"Arizona",total:30,night:10},
+  "AR":{name:"Arkansas",total:0,night:0,note:"No hour requirement — must hold permit 6 months with clean record"},
+  "CA":{name:"California",total:50,night:10},
+  "CO":{name:"Colorado",total:50,night:10},
+  "CT":{name:"Connecticut",total:40,night:10},
+  "DE":{name:"Delaware",total:50,night:10},
+  "DC":{name:"District of Columbia",total:40,night:10},
+  "FL":{name:"Florida",total:50,night:10},
+  "GA":{name:"Georgia",total:40,night:6},
+  "HI":{name:"Hawaii",total:50,night:10},
+  "ID":{name:"Idaho",total:50,night:10},
+  "IL":{name:"Illinois",total:50,night:10},
+  "IN":{name:"Indiana",total:50,night:10},
+  "IA":{name:"Iowa",total:20,night:2},
+  "KS":{name:"Kansas",total:50,night:10,note:"25 hrs for restricted license; 50 total to remove all restrictions"},
+  "KY":{name:"Kentucky",total:60,night:10},
+  "LA":{name:"Louisiana",total:50,night:15},
+  "ME":{name:"Maine",total:70,night:10},
+  "MD":{name:"Maryland",total:60,night:10},
+  "MA":{name:"Massachusetts",total:40,night:1,note:"Night requirement is 30 minutes; total may reduce to 30 hrs with approved skills program"},
+  "MI":{name:"Michigan",total:50,night:10},
+  "MN":{name:"Minnesota",total:50,night:15,note:"Reduces to 40 hrs if parent completes state-approved awareness course"},
+  "MS":{name:"Mississippi",total:50,night:0,note:"Certified by parent affidavit; no specific night hour requirement"},
+  "MO":{name:"Missouri",total:40,night:10},
+  "MT":{name:"Montana",total:50,night:10,note:"75 hrs (15 night) if using parent-taught online-only course"},
+  "NE":{name:"Nebraska",total:50,night:10},
+  "NV":{name:"Nevada",total:50,night:10},
+  "NH":{name:"New Hampshire",total:40,night:10},
+  "NJ":{name:"New Jersey",total:50,night:10,note:"Hour requirement enacted Feb 1, 2025 (permits issued on/after that date)"},
+  "NM":{name:"New Mexico",total:50,night:10},
+  "NY":{name:"New York",total:50,night:15},
+  "NC":{name:"North Carolina",total:60,night:10,note:"60 hrs (10 night) for Level 1→2; additional 12 hrs (6 night) for Level 2→3"},
+  "ND":{name:"North Dakota",total:50,night:10},
+  "OH":{name:"Ohio",total:50,night:10},
+  "OK":{name:"Oklahoma",total:50,night:10},
+  "OR":{name:"Oregon",total:50,night:0,note:"100 hrs required without driver ed; no separate night sub-requirement"},
+  "PA":{name:"Pennsylvania",total:65,night:10,note:"Also requires 5 hrs in inclement/poor weather"},
+  "RI":{name:"Rhode Island",total:50,night:10},
+  "SC":{name:"South Carolina",total:40,night:10},
+  "SD":{name:"South Dakota",total:50,night:10,note:"Also requires 10 hrs in inclement weather"},
+  "TN":{name:"Tennessee",total:50,night:10},
+  "TX":{name:"Texas",total:30,night:10},
+  "UT":{name:"Utah",total:40,night:10},
+  "VT":{name:"Vermont",total:40,night:10},
+  "VA":{name:"Virginia",total:45,night:15},
+  "WA":{name:"Washington",total:50,night:10},
+  "WV":{name:"West Virginia",total:50,night:10},
+  "WI":{name:"Wisconsin",total:50,night:10},
+  "WY":{name:"Wyoming",total:50,night:10}
 };
 
 const WX_DESC = {
-  0:"Clear sky", 1:"Mainly clear", 2:"Partly cloudy", 3:"Overcast",
-  45:"Foggy", 48:"Icy fog",
-  51:"Light drizzle", 53:"Drizzle", 55:"Heavy drizzle",
-  61:"Light rain", 63:"Rain", 65:"Heavy rain",
-  71:"Light snow", 73:"Snow", 75:"Heavy snow", 77:"Snow grains",
-  80:"Light showers", 81:"Showers", 82:"Heavy showers",
-  85:"Light snow showers", 86:"Heavy snow showers",
-  95:"Thunderstorm", 96:"Thunderstorm + hail", 99:"Thunderstorm + hail"
+  0:"Clear sky",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",
+  45:"Foggy",48:"Icy fog",
+  51:"Light drizzle",53:"Drizzle",55:"Heavy drizzle",
+  61:"Light rain",63:"Rain",65:"Heavy rain",
+  71:"Light snow",73:"Snow",75:"Heavy snow",77:"Snow grains",
+  80:"Light showers",81:"Showers",82:"Heavy showers",
+  85:"Light snow showers",86:"Heavy snow showers",
+  95:"Thunderstorm",96:"Thunderstorm + hail",99:"Thunderstorm + hail"
 };
 
-function wxEmoji(code) {
-  if (code === 0) return '☀️';
-  if (code <= 2) return '🌤️';
-  if (code === 3) return '☁️';
-  if (code <= 48) return '🌫️';
-  if (code <= 55) return '🌦️';
-  if (code <= 65) return '🌧️';
-  if (code <= 77) return '🌨️';
-  if (code <= 82) return '🌧️';
-  if (code <= 86) return '🌨️';
-  return '⛈️';
+function wxEmoji(code){
+  if(code===0)return'☀️';if(code<=2)return'🌤️';if(code===3)return'☁️';
+  if(code<=48)return'🌫️';if(code<=55)return'🌦️';if(code<=65)return'🌧️';
+  if(code<=77)return'🌨️';if(code<=82)return'🌧️';if(code<=86)return'🌨️';
+  return'⛈️';
 }
 
-// ═══════════════════════════════════════════════════════
-// SKILLS DATA
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// SKILLS
+// ═══════════════════════════════════════════════════
 const SKILLS = [
-  { id: 'steering',     cat: 'Basic Control',      name: 'Smooth steering' },
-  { id: 'braking',      cat: 'Basic Control',      name: 'Braking & acceleration' },
-  { id: 'mirrors',      cat: 'Basic Control',      name: 'Mirror & blind spot checks' },
-  { id: 'lane_keep',    cat: 'Basic Control',      name: 'Lane keeping' },
-  { id: 'speed_mgmt',   cat: 'Basic Control',      name: 'Speed management' },
-  { id: 'parallel',     cat: 'Parking',            name: 'Parallel parking' },
-  { id: 'angle_park',   cat: 'Parking',            name: 'Angle parking' },
-  { id: 'perp_park',    cat: 'Parking',            name: 'Perpendicular parking' },
-  { id: 'hill_park',    cat: 'Parking',            name: 'Hill parking' },
-  { id: 'backing',      cat: 'Parking',            name: 'Backing up / reversing' },
-  { id: 'three_point',  cat: 'Parking',            name: '3-point turn' },
-  { id: 'stop_sign',    cat: 'Intersections',      name: 'Stop sign procedure' },
-  { id: 'traffic_lt',   cat: 'Intersections',      name: 'Traffic light judgment' },
-  { id: 'left_turn',    cat: 'Intersections',      name: 'Left turns' },
-  { id: 'right_turn',   cat: 'Intersections',      name: 'Right turns' },
-  { id: 'roundabout',   cat: 'Intersections',      name: 'Roundabouts' },
-  { id: 'yield',        cat: 'Intersections',      name: 'Yielding & merging' },
-  { id: 'on_ramp',      cat: 'Highway',            name: 'On-ramp / merging at speed' },
-  { id: 'off_ramp',     cat: 'Highway',            name: 'Off-ramp / exiting' },
-  { id: 'lane_change',  cat: 'Highway',            name: 'Lane changes' },
-  { id: 'following',    cat: 'Highway',            name: 'Following distance' },
-  { id: 'passing',      cat: 'Highway',            name: 'Passing other vehicles' },
-  { id: 'night_drv',    cat: 'Adverse Conditions', name: 'Night driving' },
-  { id: 'rain',         cat: 'Adverse Conditions', name: 'Rain / wet roads' },
-  { id: 'heavy_traf',   cat: 'Adverse Conditions', name: 'Heavy traffic / rush hour' },
-  { id: 'construction', cat: 'Adverse Conditions', name: 'Construction zones' },
-  { id: 'school_zone',  cat: 'Adverse Conditions', name: 'School zones / pedestrians' },
+  {id:'steering',cat:'Vehicle Control',label:'Steering & Lane Position',tips:['Keep hands at 9 & 3 o\'clock','Look 10–15 seconds ahead','Check mirrors every 5–8 seconds']},
+  {id:'braking',cat:'Vehicle Control',label:'Smooth Braking',tips:['Begin braking early','Apply steady gradual pressure','Stop completely behind the line']},
+  {id:'acceleration',cat:'Vehicle Control',label:'Smooth Acceleration',tips:['Light gradual throttle from stops','Avoid jackrabbit starts','Blend with traffic speed smoothly']},
+  {id:'parking_lot',cat:'Vehicle Control',label:'Parking Lot Maneuvers',tips:['Check all mirrors before reversing','Use backup camera as guide only','Enter parking spaces at 45° angle']},
+  {id:'reverse',cat:'Vehicle Control',label:'Reversing & Backing',tips:['Turn body to look out rear window','Go slowly — barely touch throttle','Check surroundings before & during']},
+  {id:'parallel',cat:'Parking',label:'Parallel Parking',tips:['Pull alongside front car bumper-to-bumper','Turn fully, reverse, then straighten','End 6–12 inches from curb']},
+  {id:'angle_park',cat:'Parking',label:'Angle Parking',tips:['Approach straight, centered in space','Align mirrors with space lines','Back out slowly with full checks']},
+  {id:'hill_park',cat:'Parking',label:'Hill Parking',tips:['Uphill + curb: wheels left (away)','Downhill + curb: wheels right (toward)','No curb: wheels toward road edge']},
+  {id:'intersections',cat:'Traffic & Rules',label:'Intersections & Right-of-Way',tips:['Stop completely — tires must not roll','IPDE: Identify, Predict, Decide, Execute','Yield to traffic already in intersection']},
+  {id:'signs',cat:'Traffic & Rules',label:'Traffic Signs & Signals',tips:['React to yellow — don\'t accelerate','Know all sign shapes and colors','Flashing red = stop sign']},
+  {id:'speed',cat:'Traffic & Rules',label:'Speed Management',tips:['Match posted limit, adjust for conditions','Slow in school zones always','3-second minimum following distance']},
+  {id:'following',cat:'Traffic & Rules',label:'Following Distance',tips:['Use 3-second rule (fixed point)','4–6 seconds in rain or fog','Add 1 second per hazard']},
+  {id:'lane_change',cat:'Highway & Merging',label:'Lane Changes',tips:['Signal 3–5 seconds before','Mirror then blind spot check','Match target lane speed first']},
+  {id:'merging',cat:'Highway & Merging',label:'Highway Merging',tips:['Accelerate to highway speed on ramp','Find gap before ramp ends','Merge smoothly — no forcing']},
+  {id:'highway',cat:'Highway & Merging',label:'Highway Driving',tips:['Right lane except to pass','4+ second following distance at speed','Mirror + blind spot every lane change']},
+  {id:'exit',cat:'Highway & Merging',label:'Highway Exits',tips:['Signal early before the ramp','Don\'t slow on highway — brake on ramp','Know exit number in advance']},
+  {id:'night',cat:'Conditions',label:'Night Driving',tips:['High beams only — no oncoming traffic','Reduce speed — headlights see ~350ft','Watch for pedestrians and cyclists']},
+  {id:'rain',cat:'Conditions',label:'Rain & Wet Roads',tips:['5–6 second following distance','Headlights on even in light rain','Hydroplaning: ease off gas, steer straight']},
+  {id:'gravel',cat:'Conditions',label:'Gravel & Rural Roads',tips:['Reduce speed — less traction','Avoid sudden steering or braking','Watch for flying gravel']},
+  {id:'turns',cat:'Maneuvers',label:'Left & Right Turns',tips:['Right turns: hug right side','Left turns: go to center of intersection','Finish turn before accelerating']},
+  {id:'u_turn',cat:'Maneuvers',label:'U-Turns',tips:['Only where signs permit','Yield to all traffic first','Multi-point turn if street is narrow']},
+  {id:'three_point',cat:'Maneuvers',label:'3-Point Turn',tips:['Check both directions thoroughly','Pull to curb, back across, pull forward','Signal throughout']},
+  {id:'roundabout',cat:'Maneuvers',label:'Roundabouts',tips:['Yield to traffic in the circle','Don\'t stop inside roundabout','Signal when exiting']},
+  {id:'emergency',cat:'Maneuvers',label:'Emergency Stops',tips:['Press brake firmly but controlled','Keep both hands on wheel','ABS pulses — keep steady pressure']},
+  {id:'scanning',cat:'Awareness',label:'Scanning & Hazard Recognition',tips:['Scan 10–15 seconds ahead','Watch for brake lights far down road','Identify escape routes while driving']},
+  {id:'sharing',cat:'Awareness',label:'Sharing the Road',tips:['Give cyclists 3 feet clearance','Watch for pedestrians at every intersection','Motorcycles hide in blind spots']}
 ];
 
-// ═══════════════════════════════════════════════════════
-// MILESTONES
-// ═══════════════════════════════════════════════════════
 const MILESTONES = [
-  { id: 'first',    icon: '🚗', label: 'First Drive',  pct: 0,    check: (t,r) => t.sessions >= 1 },
-  { id: 'q1',       icon: '🌱', label: '25% Done',     pct: 25,   check: (t,r) => r.total > 0 && t.totalHours >= r.total * 0.25 },
-  { id: 'half',     icon: '🏅', label: 'Halfway',      pct: 50,   check: (t,r) => r.total > 0 && t.totalHours >= r.total * 0.50 },
-  { id: 'q3',       icon: '🔥', label: '75% There',    pct: 75,   check: (t,r) => r.total > 0 && t.totalHours >= r.total * 0.75 },
-  { id: 'complete', icon: '🎉', label: '100% Complete', pct: 100, check: (t,r) => r.total > 0 && t.totalHours >= r.total },
+  {id:'first',icon:'🚗',label:'First Drive',check:(t)=>t.sessions>=1},
+  {id:'q1',icon:'⭐',label:'25% Complete',check:(t,r)=>r.total>0&&t.totalHours>=r.total*0.25},
+  {id:'half',icon:'🏅',label:'Halfway There',check:(t,r)=>r.total>0&&t.totalHours>=r.total*0.5},
+  {id:'q3',icon:'🥈',label:'75% Complete',check:(t,r)=>r.total>0&&t.totalHours>=r.total*0.75},
+  {id:'done',icon:'🏆',label:'Hours Complete!',check:(t,r)=>r.total>0&&t.totalHours>=r.total},
+  {id:'night_done',icon:'🌙',label:'Night Hours Done',check:(t,r)=>r.night>0&&t.nightHours>=r.night},
+  {id:'ten',icon:'📋',label:'10 Sessions',check:(t)=>t.sessions>=10},
+  {id:'miles100',icon:'📍',label:'100 Miles',check:(t)=>t.distMi>=100}
 ];
 
-// ═══════════════════════════════════════════════════════
-// APP STATE
-// ═══════════════════════════════════════════════════════
+const ACCENT_COLORS = [
+  {id:'blue',label:'Blue',main:'#2563eb',dk:'#1d4ed8',lt:'rgba(37,99,235,.12)'},
+  {id:'purple',label:'Purple',main:'#7c3aed',dk:'#6d28d9',lt:'rgba(124,58,237,.12)'},
+  {id:'green',label:'Green',main:'#16a34a',dk:'#15803d',lt:'rgba(22,163,74,.12)'},
+  {id:'rose',label:'Rose',main:'#e11d48',dk:'#be123c',lt:'rgba(225,29,72,.12)'},
+  {id:'amber',label:'Amber',main:'#d97706',dk:'#b45309',lt:'rgba(217,119,6,.12)'},
+  {id:'teal',label:'Teal',main:'#0d9488',dk:'#0f766e',lt:'rgba(13,148,136,.12)'}
+];
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
 let settings = loadSettings();
 let sessions = loadSessions();
-let skills = loadSkills();
+let skillsData = loadSkillsData();
 let activeSession = null;
-let pendingSession = null; // set after GPS stop, before save (wrap-up state)
 let currentView = 'dashboard';
 let driveMap = null, drivePolyline = null, drivePosMarker = null;
-let detailMap = null;
+let detailMap = null, replayMarker = null, replayInterval = null;
 let driveTimerInterval = null;
 let gpsWatchId = null;
+let wakeLock = null;
 let activeSessionId = null;
 let historyFilter = 'all';
-let editingSessionId = null;
+let historySearch = '';
+let historySort = 'newest';
+let goalCollapsed = false;
+let viewOrder = ['dashboard','drive','skills','history','settings'];
+let openSkillTip = null;
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
 // PERSISTENCE
-// ═══════════════════════════════════════════════════════
-function loadSettings() {
-  try { return { ...defaultSettings(), ...JSON.parse(localStorage.getItem('dl_settings')) }; }
-  catch { return defaultSettings(); }
+// ═══════════════════════════════════════════════════
+function loadSettings(){
+  try{return Object.assign(defaultSettings(),JSON.parse(localStorage.getItem('dl_settings'))||{});}
+  catch{return defaultSettings();}
 }
-function defaultSettings() {
-  return { driverName: '', state: 'CA', customTotal: null, customNight: null, goalDate: '', darkMode: false, milestonesUnlocked: [] };
+function defaultSettings(){
+  return{driverName:'',state:'CA',customTotal:null,customNight:null,goalDate:'',darkMode:false,accentId:'blue',fontSize:'medium',onboardingDone:false};
 }
-function saveSettings() { localStorage.setItem('dl_settings', JSON.stringify(settings)); }
+function saveSettings(){localStorage.setItem('dl_settings',JSON.stringify(settings));}
 
-function loadSessions() {
-  try { return JSON.parse(localStorage.getItem('dl_sessions')) || []; }
-  catch { return []; }
+function loadSessions(){
+  try{return JSON.parse(localStorage.getItem('dl_sessions'))||[];}
+  catch{return[];}
 }
-function saveSessions() { localStorage.setItem('dl_sessions', JSON.stringify(sessions)); }
+function saveSessions(){localStorage.setItem('dl_sessions',JSON.stringify(sessions));}
 
-function loadSkills() {
-  try { return JSON.parse(localStorage.getItem('dl_skills')) || {}; }
-  catch { return {}; }
+function loadSkillsData(){
+  try{return JSON.parse(localStorage.getItem('dl_skills'))||{};}
+  catch{return{};}
 }
-function saveSkills(sk) { localStorage.setItem('dl_skills', JSON.stringify(sk)); }
+function saveSkillsData(){localStorage.setItem('dl_skills',JSON.stringify(skillsData));}
 
-function setSkill(id, level) {
-  skills[id] = level;
-  saveSkills(skills);
-  renderSkills();
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+
+// ═══════════════════════════════════════════════════
+// THEME / ACCENT / FONT
+// ═══════════════════════════════════════════════════
+function applyTheme(){
+  document.documentElement.setAttribute('data-dark', settings.darkMode ? 'true' : 'false');
+  const ac = ACCENT_COLORS.find(c=>c.id===settings.accentId)||ACCENT_COLORS[0];
+  const root = document.documentElement.style;
+  root.setProperty('--accent', ac.main);
+  root.setProperty('--blue', ac.main);
+  root.setProperty('--blue-dk', ac.dk);
+  root.setProperty('--accent-lt', ac.lt);
+  root.setProperty('--blue-lt', ac.lt);
+  const fs = {small:'14px',medium:'16px',large:'18px'}[settings.fontSize]||'16px';
+  root.setProperty('--base-size', fs);
+  updateAvatar();
 }
 
-function genId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+function updateAvatar(){
+  const el = document.getElementById('avatar');
+  if(!el)return;
+  const name = settings.driverName||'?';
+  const initials = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  el.textContent = initials||'?';
 }
 
-// ═══════════════════════════════════════════════════════
-// DARK MODE
-// ═══════════════════════════════════════════════════════
-function applyDarkMode() {
-  const root = document.getElementById('html-root');
-  if (settings.darkMode) root.setAttribute('data-dark', '');
-  else root.removeAttribute('data-dark');
-}
-
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
 // REQUIREMENTS & STATS
-// ═══════════════════════════════════════════════════════
-function getReqs() {
-  const st = STATE_REQS[settings.state] || STATE_REQS['CA'];
-  return {
-    total: settings.customTotal != null ? +settings.customTotal : st.total,
-    night: settings.customNight != null ? +settings.customNight : st.night,
-    note: st.note || null,
-    stateName: st.name
+// ═══════════════════════════════════════════════════
+function getReqs(){
+  const st = STATE_REQS[settings.state]||STATE_REQS['CA'];
+  return{
+    total:settings.customTotal!=null?+settings.customTotal:st.total,
+    night:settings.customNight!=null?+settings.customNight:st.night,
+    note:st.note||null,
+    stateName:st.name
   };
 }
 
-function getTotals() {
-  let totalMin = 0, nightMin = 0, distMi = 0;
-  for (const s of sessions) {
-    totalMin += s.duration || 0;
-    if (s.isNight) nightMin += s.duration || 0;
-    distMi += s.distance || 0;
+function getTotals(){
+  let totalMin=0,nightMin=0,distMi=0,maxSpeed=0,totalSpeed=0,speedCount=0;
+  for(const s of sessions){
+    totalMin+=s.duration||0;
+    if(s.isNight)nightMin+=s.duration||0;
+    distMi+=s.distance||0;
+    if(s.maxSpeed)maxSpeed=Math.max(maxSpeed,s.maxSpeed);
+    if(s.avgSpeed){totalSpeed+=s.avgSpeed;speedCount++;}
   }
-  return { totalHours: totalMin / 60, nightHours: nightMin / 60, sessions: sessions.length, distMi };
+  return{
+    totalHours:totalMin/60,nightHours:nightMin/60,
+    sessions:sessions.length,distMi,
+    maxSpeed,avgSpeed:speedCount>0?totalSpeed/speedCount:0
+  };
 }
 
-// ═══════════════════════════════════════════════════════
+function getStreak(){
+  if(!sessions.length)return 0;
+  const days = new Set(sessions.map(s=>s.startTime?s.startTime.slice(0,10):null).filter(Boolean));
+  let streak=0,d=new Date();d.setHours(0,0,0,0);
+  // allow today or yesterday to start streak
+  const todayStr=d.toISOString().slice(0,10);
+  const yd=new Date(d);yd.setDate(yd.getDate()-1);
+  const ydStr=yd.toISOString().slice(0,10);
+  if(!days.has(todayStr)&&!days.has(ydStr))return 0;
+  let cur=days.has(todayStr)?new Date(d):new Date(yd);
+  while(true){
+    const s=cur.toISOString().slice(0,10);
+    if(days.has(s)){streak++;cur.setDate(cur.getDate()-1);}
+    else break;
+  }
+  return streak;
+}
+
+// ═══════════════════════════════════════════════════
+// SKILLS BADGE
+// ═══════════════════════════════════════════════════
+function updateSkillsBadge(){
+  const notStarted = SKILLS.filter(s=>!skillsData[s.id]||skillsData[s.id].status==='not_started').length;
+  const badge = document.getElementById('skills-nav-badge');
+  if(!badge)return;
+  if(notStarted>0){badge.textContent=notStarted;badge.classList.add('show');}
+  else badge.classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════
 // MILESTONES
-// ═══════════════════════════════════════════════════════
-function checkMilestones() {
-  const totals = getTotals();
-  const reqs = getReqs();
-  if (!settings.milestonesUnlocked) settings.milestonesUnlocked = [];
-  let changed = false;
-  for (const m of MILESTONES) {
-    if (!settings.milestonesUnlocked.includes(m.id) && m.check(totals, reqs)) {
-      settings.milestonesUnlocked.push(m.id);
-      changed = true;
-      setTimeout(() => toast(m.icon + ' Milestone unlocked: ' + m.label), 400);
+// ═══════════════════════════════════════════════════
+function checkMilestones(){
+  const totals=getTotals(),reqs=getReqs();
+  const earned=new Set(JSON.parse(localStorage.getItem('dl_milestones')||'[]'));
+  let newEarned=[];
+  for(const m of MILESTONES){
+    if(!earned.has(m.id)&&m.check(totals,reqs)){
+      earned.add(m.id);newEarned.push(m);
     }
   }
-  if (changed) saveSettings();
-}
-
-function milestonesHTML(totals, reqs) {
-  if (!settings.milestonesUnlocked) settings.milestonesUnlocked = [];
-  const badges = MILESTONES.map(m => {
-    const earned = settings.milestonesUnlocked.includes(m.id);
-    return `<div class="milestone-badge ${earned ? 'earned' : 'locked'}">
-      <div class="mb-icon">${m.icon}</div>
-      <div class="mb-label">${m.label}</div>
-    </div>`;
-  }).join('');
-  return `<div class="section-title">Milestones</div>
-  <div class="card"><div class="milestone-badges">${badges}</div></div>`;
-}
-
-// ═══════════════════════════════════════════════════════
-// WEEKLY CHART
-// ═══════════════════════════════════════════════════════
-function weeklyChartHTML() {
-  // Build 8-week buckets ending this week
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0=Sun
-  const weekStart = new Date(now); weekStart.setHours(0,0,0,0);
-  weekStart.setDate(weekStart.getDate() - dayOfWeek);
-
-  const weeks = [];
-  for (let i = 7; i >= 0; i--) {
-    const ws = new Date(weekStart); ws.setDate(ws.getDate() - i * 7);
-    const we = new Date(ws); we.setDate(we.getDate() + 7);
-    weeks.push({ start: ws, end: we, dayMin: 0, nightMin: 0 });
+  if(newEarned.length){
+    localStorage.setItem('dl_milestones',JSON.stringify([...earned]));
+    newEarned.forEach(m=>toast(m.icon+' '+m.label+' unlocked!'));
   }
+  return earned;
+}
 
-  for (const s of sessions) {
-    const t = new Date(s.startTime).getTime();
-    for (const w of weeks) {
-      if (t >= w.start.getTime() && t < w.end.getTime()) {
-        if (s.isNight) w.nightMin += s.duration || 0;
-        else w.dayMin += s.duration || 0;
-        break;
+function milestonesHTML(){
+  const earned=checkMilestones();
+  return'<div class="milestones-row">'+MILESTONES.map(m=>`
+    <div class="milestone-badge${earned.has(m.id)?' earned':''}">
+      <div class="m-icon">${m.icon}</div>
+      <div class="m-label">${m.label}</div>
+    </div>`).join('')+'</div>';
+}
+
+// ═══════════════════════════════════════════════════
+// WEEKLY CHART
+// ═══════════════════════════════════════════════════
+function weeklyChartHTML(){
+  const weeks=[];
+  const today=new Date();today.setHours(0,0,0,0);
+  for(let i=7;i>=0;i--){
+    const start=new Date(today);start.setDate(start.getDate()-start.getDay()-i*7);
+    const end=new Date(start);end.setDate(end.getDate()+7);
+    let day=0,night=0;
+    for(const s of sessions){
+      const d=new Date(s.startTime);
+      if(d>=start&&d<end){
+        const h=(s.duration||0)/60;
+        if(s.isNight)night+=h;else day+=h;
       }
     }
+    const label=start.toLocaleDateString([],{month:'short',day:'numeric'});
+    weeks.push({label,day,night,total:day+night});
   }
-
-  const toH = m => m / 60;
-  const maxH = Math.max(...weeks.map(w => toH(w.dayMin + w.nightMin)), 0.5);
-
-  // SVG dimensions
-  const vW = 340, vH = 130;
-  const padL = 28, padR = 4, padT = 14, padB = 28;
-  const chartW = vW - padL - padR;
-  const chartH = vH - padT - padB;
-  const barW = chartW / 8;
-
-  // Nice Y interval
-  const niceMax = Math.ceil(maxH / 1) * 1 || 1;
-  const yStep = niceMax <= 4 ? 1 : niceMax <= 8 ? 2 : 5;
-
-  let gridLines = '';
-  let yLabels = '';
-  for (let h = 0; h <= niceMax; h += yStep) {
-    const y = padT + chartH - (h / niceMax) * chartH;
-    gridLines += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${vW - padR}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`;
-    yLabels += `<text x="${padL - 3}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="8">${h}</text>`;
-  }
-
-  let bars = '';
-  let xLabels = '';
-  weeks.forEach((w, i) => {
-    const x = padL + i * barW;
-    const bx = x + barW * 0.15;
-    const bw = barW * 0.7;
-    const dayH = (toH(w.dayMin) / niceMax) * chartH;
-    const nightH = (toH(w.nightMin) / niceMax) * chartH;
-    const totalH = dayH + nightH;
-    const barY = padT + chartH - totalH;
-
-    if (nightH > 0) {
-      bars += `<rect x="${bx.toFixed(1)}" y="${(padT + chartH - nightH).toFixed(1)}" width="${bw.toFixed(1)}" height="${nightH.toFixed(1)}" rx="2" fill="#7c3aed"/>`;
-    }
-    if (dayH > 0) {
-      const dy = padT + chartH - totalH;
-      bars += `<rect x="${bx.toFixed(1)}" y="${dy.toFixed(1)}" width="${bw.toFixed(1)}" height="${dayH.toFixed(1)}" rx="2" fill="#d97706"/>`;
-    }
-    if (totalH > 4) {
-      const totalHrs = toH(w.dayMin + w.nightMin);
-      bars += `<text x="${(bx + bw/2).toFixed(1)}" y="${(barY - 2).toFixed(1)}" text-anchor="middle" font-size="7" fill="var(--muted)">${totalHrs.toFixed(1)}</text>`;
-    }
-
-    // X label: short date (M/D)
-    const lbl = `${w.start.getMonth()+1}/${w.start.getDate()}`;
-    xLabels += `<text x="${(x + barW/2).toFixed(1)}" y="${(vH - 4).toFixed(1)}" text-anchor="middle" font-size="7">${lbl}</text>`;
+  const maxH=Math.max(...weeks.map(w=>w.total),1);
+  const barH=60,barW=28,gap=6;
+  const svgW=(barW+gap)*8+gap;
+  let bars='',labels='';
+  weeks.forEach((w,i)=>{
+    const x=gap+i*(barW+gap);
+    const nightH=Math.round((w.night/maxH)*barH);
+    const dayH=Math.round((w.day/maxH)*barH);
+    bars+=`<rect x="${x}" y="${barH-nightH-dayH}" width="${barW}" height="${dayH}" fill="var(--amber)" rx="3"/>`;
+    bars+=`<rect x="${x}" y="${barH-nightH}" width="${barW}" height="${nightH}" fill="var(--purple)" rx="3"/>`;
+    const isLast=i===7;
+    labels+=`<text x="${x+barW/2}" y="78" text-anchor="middle" font-size="8" fill="var(--muted)">${isLast?'This wk':i===6?'Last wk':''}</text>`;
   });
-
-  const svg = `<svg viewBox="0 0 ${vW} ${vH}" class="chart-svg" style="width:100%;height:auto;display:block">
-    ${gridLines}
-    ${yLabels}
-    ${bars}
-    ${xLabels}
-  </svg>`;
-
-  const legend = `<div class="chart-legend">
-    <span><span class="legend-swatch" style="background:#d97706"></span> Day</span>
-    <span><span class="legend-swatch" style="background:#7c3aed"></span> Night</span>
-  </div>`;
-
-  return `<div class="section-title">Weekly Summary</div>
-  <div class="card">${svg}${legend}</div>`;
+  return`<div class="chart-wrap"><svg width="100%" viewBox="0 0 ${svgW} 84" style="display:block;min-width:${svgW}px">
+    <rect x="0" y="0" width="${svgW}" height="${barH}" fill="var(--border)" rx="4" opacity=".2"/>
+    ${bars}${labels}
+  </svg>
+  <div style="display:flex;gap:12px;justify-content:center;margin-top:6px;font-size:.68rem;color:var(--muted)">
+    <span><span style="display:inline-block;width:10px;height:10px;background:var(--amber);border-radius:2px;margin-right:4px;vertical-align:middle"></span>Day</span>
+    <span><span style="display:inline-block;width:10px;height:10px;background:var(--purple);border-radius:2px;margin-right:4px;vertical-align:middle"></span>Night</span>
+  </div></div>`;
 }
 
-// ═══════════════════════════════════════════════════════
-// NAVIGATION
-// ═══════════════════════════════════════════════════════
-document.querySelectorAll('.nav-btn').forEach(btn => {
-  btn.addEventListener('click', () => navigate(btn.dataset.view));
+// ═══════════════════════════════════════════════════
+// NAVIGATION + SWIPE
+// ═══════════════════════════════════════════════════
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    vibrate(20);
+    navigate(btn.dataset.view);
+  });
 });
 
-function navigate(view) {
+function navigate(view, direction){
+  const prevIdx = viewOrder.indexOf(currentView);
+  const newIdx = viewOrder.indexOf(view);
   currentView = view;
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.view === view);
-  });
-  document.getElementById(view + '-view').classList.add('active');
-  if (view === 'dashboard') renderDashboard();
-  else if (view === 'drive') renderDrive();
-  else if (view === 'skills') renderSkills();
-  else if (view === 'history') renderHistory();
-  else if (view === 'settings') renderSettings();
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active','slide-in-right','slide-in-left'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  const el = document.getElementById(view+'-view');
+  el.classList.add('active');
+  if(direction==='right')el.classList.add('slide-in-right');
+  else if(direction==='left')el.classList.add('slide-in-left');
+  if(view==='dashboard')renderDashboard();
+  else if(view==='drive')renderDrive();
+  else if(view==='skills')renderSkills();
+  else if(view==='history')renderHistory();
+  else if(view==='settings')renderSettings();
 }
 
-// ═══════════════════════════════════════════════════════
+// Swipe gestures
+let swipeStartX=0,swipeStartY=0;
+const mainEl = document.getElementById('main');
+mainEl.addEventListener('touchstart',e=>{swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;},{passive:true});
+mainEl.addEventListener('touchend',e=>{
+  if(activeSession)return;
+  const dx=e.changedTouches[0].clientX-swipeStartX;
+  const dy=e.changedTouches[0].clientY-swipeStartY;
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){
+    const idx=viewOrder.indexOf(currentView);
+    if(dx<0&&idx<viewOrder.length-1)navigate(viewOrder[idx+1],'right');
+    else if(dx>0&&idx>0)navigate(viewOrder[idx-1],'left');
+  }
+},{passive:true});
+
+// ═══════════════════════════════════════════════════
 // DASHBOARD
-// ═══════════════════════════════════════════════════════
-function goalCard(reqs, totals) {
-  if (!settings.goalDate) return '';
+// ═══════════════════════════════════════════════════
+function renderDashboard(){
+  const el=document.getElementById('dash-content');
+  // Skeleton
+  el.innerHTML=`<div class="skeleton-card"><div class="skel" style="height:100px"></div></div>
+    <div class="skeleton-card"><div class="skel" style="height:60px"></div></div>`;
+  setTimeout(()=>{
+    const reqs=getReqs(),totals=getTotals();
+    const totalPct=reqs.total>0?Math.min(totals.totalHours/reqs.total,1):1;
+    const nightPct=reqs.night>0?Math.min(totals.nightHours/reqs.night,1):1;
+    const driverLabel=settings.driverName?settings.driverName+"'s Log":'My Driving Log';
+    const streak=getStreak();
+    const recent=[...sessions].sort((a,b)=>new Date(b.startTime)-new Date(a.startTime)).slice(0,3);
+    const recentlyPracticed=getRecentSkills();
+    const circSize=106,stroke=10;
+    const r=(circSize-stroke)/2,circ=2*Math.PI*r;
+    const targetOffset=(circ*(1-totalPct)).toFixed(2);
 
-  const today = new Date(); today.setHours(0,0,0,0);
-  const goal = new Date(settings.goalDate + 'T00:00:00');
-  const daysLeft = Math.ceil((goal - today) / 86400000);
-
-  if (daysLeft <= 0) {
-    const hoursLeft = Math.max(reqs.total - totals.totalHours, 0);
-    const nightLeft = Math.max(reqs.night - totals.nightHours, 0);
-    if (hoursLeft === 0 && nightLeft === 0) {
-      return `<div class="card" style="background:var(--green-lt);border:1.5px solid var(--green)">
-        <div style="font-weight:700;color:var(--green);font-size:1rem">🎉 Goal date reached — requirements met!</div>
-      </div>`;
-    }
-    return `<div class="card" style="background:var(--red-lt);border:1.5px solid var(--red)">
-      <div style="font-weight:700;color:var(--red);margin-bottom:4px">⚠️ Goal date passed</div>
-      <div style="font-size:.82rem;color:var(--red)">${hoursLeft.toFixed(1)} total hrs and ${nightLeft.toFixed(1)} night hrs still needed.</div>
-    </div>`;
-  }
-
-  const weeksLeft = daysLeft / 7;
-  const hoursLeft = Math.max(reqs.total - totals.totalHours, 0);
-  const nightLeft = Math.max(reqs.night - totals.nightHours, 0);
-  const hrsPerWeek = hoursLeft / weeksLeft;
-  const nightPerWeek = nightLeft / weeksLeft;
-  const onTrack = reqs.total === 0 || hrsPerWeek <= 5;
-  const accent = onTrack ? 'var(--green)' : 'var(--amber)';
-  const accentLt = onTrack ? 'var(--green-lt)' : 'var(--amber-lt)';
-
-  const daysLabel = daysLeft === 1 ? '1 day' : daysLeft < 14 ? `${daysLeft} days` : `${Math.round(weeksLeft)} weeks`;
-  const goalFmt = goal.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-
-  if (hoursLeft === 0 && nightLeft === 0) {
-    return `<div class="card" style="background:var(--green-lt);border:1.5px solid var(--green)">
-      <div style="font-weight:700;color:var(--green)">✅ All hours complete! ${daysLabel} until ${goalFmt}.</div>
-    </div>`;
-  }
-
-  return `<div class="card" style="background:${accentLt};border:1.5px solid ${accent}">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div>
-        <div style="font-weight:700;font-size:.92rem;color:${accent}">📅 Goal: ${goalFmt}</div>
-        <div style="font-size:.75rem;color:var(--muted);margin-top:2px">${daysLabel} remaining</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:1.6rem;font-weight:800;color:${accent};line-height:1">${hrsPerWeek.toFixed(1)}</div>
-        <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">hrs/week</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:16px;font-size:.78rem">
-      <span>⏱ ${hoursLeft.toFixed(1)} total hrs left</span>
-      ${reqs.night > 0 ? `<span>🌙 ${nightLeft.toFixed(1)} night hrs left · ${nightPerWeek.toFixed(1)}/wk</span>` : ''}
-    </div>
-  </div>`;
-}
-
-function renderDashboard() {
-  const reqs = getReqs();
-  const totals = getTotals();
-  const totalPct = reqs.total > 0 ? Math.min(totals.totalHours / reqs.total, 1) : 1;
-  const nightPct = reqs.night > 0 ? Math.min(totals.nightHours / reqs.night, 1) : 1;
-  const driverLabel = settings.driverName ? settings.driverName + "'s Log" : 'My Driving Log';
-  const recent = [...sessions].sort((a,b) => new Date(b.startTime)-new Date(a.startTime)).slice(0,3);
-
-  document.getElementById('dash-content').innerHTML = `
-    ${activeSession ? `<button class="start-fab" style="background:var(--red)" onclick="navigate('drive')">● Drive in progress — tap to view</button>` : ''}
-    <div class="card">
-      <div class="stats-hero">
-        <div class="ring-wrap">
-          ${progressRing(totalPct, reqs.total === 0 ? '#64748b' : '#2563eb', 110, 11)}
-          <div class="ring-label">
-            <div class="ring-pct">${reqs.total > 0 ? Math.round(totalPct*100)+'%' : '—'}</div>
-            <div class="ring-sub">done</div>
+    el.innerHTML=`
+      ${activeSession?`<button class="start-fab" style="background:var(--red)" onclick="navigate('drive')">● Drive in progress — tap to view</button>`:''}
+      ${streak>=2?`<div class="streak-badge">🔥 ${streak}-day streak</div>`:''}
+      <div class="card">
+        <div class="stats-hero">
+          <div class="ring-wrap">
+            <svg width="${circSize}" height="${circSize}" style="transform:rotate(-90deg)">
+              <circle cx="${circSize/2}" cy="${circSize/2}" r="${r}" fill="none" stroke="var(--border)" stroke-width="${stroke}"/>
+              <circle class="ring-circle-progress" cx="${circSize/2}" cy="${circSize/2}" r="${r}" fill="none" stroke="var(--accent)" stroke-width="${stroke}"
+                stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${circ.toFixed(2)}"
+                stroke-linecap="round" data-target="${targetOffset}"/>
+            </svg>
+            <div class="ring-label">
+              <div class="ring-pct">${reqs.total>0?Math.round(totalPct*100)+'%':'—'}</div>
+              <div class="ring-sub">done</div>
+            </div>
+          </div>
+          <div class="hero-right">
+            <div class="sub">${driverLabel}</div>
+            <h2>${totals.totalHours.toFixed(1)} <small style="font-size:.75rem;font-weight:500;color:var(--muted)">/ ${reqs.total>0?reqs.total:'?'} hrs</small></h2>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:2px">${reqs.stateName}</div>
+            ${reqs.total>0?`
+              <div class="mini-bar-wrap" style="margin-top:10px">
+                <div class="mini-bar-label"><span>🌙 Night ${totals.nightHours.toFixed(1)}h / ${reqs.night}h</span><span style="color:var(--purple)">${reqs.night>0?Math.round(nightPct*100)+'%':'—'}</span></div>
+                <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${nightPct*100}%;background:var(--purple)"></div></div>
+              </div>
+              <div class="mini-bar-wrap" style="margin-top:6px">
+                <div class="mini-bar-label"><span>☀️ Day ${(totals.totalHours-totals.nightHours).toFixed(1)}h</span></div>
+                <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${Math.min((totals.totalHours-totals.nightHours)/reqs.total,1)*100}%;background:var(--amber)"></div></div>
+              </div>`:'<div style="font-size:.72rem;color:var(--muted);margin-top:8px">No hour requirement for this state</div>'}
           </div>
         </div>
-        <div class="hero-right">
-          <div class="sub">${driverLabel}</div>
-          <h2>${totals.totalHours.toFixed(1)} <small style="font-size:.8rem;font-weight:500;color:var(--muted)">/ ${reqs.total > 0 ? reqs.total : '?'} hrs</small></h2>
-          <div style="font-size:.78rem;color:var(--muted);margin-top:2px">${reqs.stateName}</div>
-          ${reqs.total > 0 ? `
-            <div class="mini-bar-wrap" style="margin-top:10px">
-              <div class="mini-bar-label">
-                <span>🌙 Night ${totals.nightHours.toFixed(1)}h / ${reqs.night}h</span>
-                <span style="color:var(--purple)">${reqs.night > 0 ? Math.round(nightPct*100)+'%' : '—'}</span>
-              </div>
-              <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${nightPct*100}%;background:var(--purple)"></div></div>
-            </div>
-            <div class="mini-bar-wrap" style="margin-top:8px">
-              <div class="mini-bar-label">
-                <span>☀️ Day ${(totals.totalHours - totals.nightHours).toFixed(1)}h</span>
-              </div>
-              <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${Math.min((totals.totalHours-totals.nightHours)/reqs.total,1)*100}%;background:var(--amber)"></div></div>
-            </div>
-          ` : '<div style="font-size:.75rem;color:var(--muted);margin-top:8px">No hour requirement for this state</div>'}
+      </div>
+      <div class="card">
+        <div class="stat-grid">
+          <div class="stat-box"><div class="val">${totals.sessions}</div><div class="lbl">Sessions</div></div>
+          <div class="stat-box"><div class="val">${totals.distMi.toFixed(1)}</div><div class="lbl">Miles</div></div>
+          <div class="stat-box"><div class="val">${totals.sessions>0?fmtDur(totals.totalHours*60/totals.sessions):'—'}</div><div class="lbl">Avg</div></div>
         </div>
+        ${totals.maxSpeed>0?`<div style="display:flex;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div class="stat-box" style="flex:1"><div class="val">${totals.maxSpeed.toFixed(0)}</div><div class="lbl">Top Speed</div></div>
+          <div class="stat-box" style="flex:1"><div class="val">${totals.avgSpeed.toFixed(0)}</div><div class="lbl">Avg Speed</div></div>
+        </div>`:''}
       </div>
-    </div>
-    <div class="card">
-      <div class="stat-grid">
-        <div class="stat-box"><div class="val">${totals.sessions}</div><div class="lbl">Sessions</div></div>
-        <div class="stat-box"><div class="val">${totals.distMi.toFixed(1)}</div><div class="lbl">Miles</div></div>
-        <div class="stat-box"><div class="val">${totals.sessions > 0 ? fmtDur(totals.totalHours*60/totals.sessions) : '—'}</div><div class="lbl">Avg</div></div>
-      </div>
-    </div>
-    ${goalCard(reqs, totals)}
-    ${milestonesHTML(totals, reqs)}
-    ${weeklyChartHTML()}
-    ${!activeSession ? `<button class="start-fab" onclick="navigate('drive')">Start a Drive</button>` : ''}
-    <div class="section-title">Recent Sessions</div>
-    ${recent.length ? `<div class="card">${recent.map(sessionRow).join('')}</div>` : `<div class="empty-state"><div class="e-icon">🚗</div><div>No sessions yet.<br>Tap <b>Drive</b> to log your first drive.</div></div>`}
-  `;
-  document.querySelectorAll('.session-row').forEach(r => {
-    r.addEventListener('click', () => showSessionDetail(r.dataset.id));
-  });
+      ${goalCard(reqs,totals)}
+      <div class="section-title">Milestones</div>
+      ${milestonesHTML()}
+      <div class="section-title">Weekly Activity</div>
+      <div class="card">${weeklyChartHTML()}</div>
+      ${recentlyPracticed.length?`<div class="section-title">Recently Practiced Skills</div>
+        <div class="card"><div class="recent-skills">${recentlyPracticed.map(s=>`<span class="skill-chip">✅ ${s.label}</span>`).join('')}</div></div>`:''}
+      ${!activeSession?`<button class="start-fab" onclick="navigate('drive')">Start a Drive</button>`:''}
+      <div class="section-title">Recent Sessions</div>
+      ${recent.length?`<div class="card">${recent.map(s=>sessionRowHTML(s,false)).join('')}</div>`:emptyStateHTML('car','No sessions yet','Tap Drive to log your first drive')}
+    `;
+    // Animate ring
+    requestAnimationFrame(()=>{
+      const circle=el.querySelector('.ring-circle-progress');
+      if(circle)setTimeout(()=>{circle.style.strokeDashoffset=circle.dataset.target;},50);
+    });
+    el.querySelectorAll('.session-row').forEach(r=>r.addEventListener('click',()=>showSessionDetail(r.dataset.id)));
+  },200);
 }
 
-function sessionRow(s) {
-  const addr = s.startLocation?.city || s.startLocation?.address || 'Unknown location';
-  return `<div class="session-row" data-id="${s.id}">
-    <div class="s-icon ${s.isNight ? 's-night' : 's-day'}">${s.isNight ? '🌙' : '☀️'}</div>
-    <div class="s-info">
-      <div class="s-title">${addr}</div>
-      <div class="s-meta">${fmtDate(s.startTime)} · ${fmtTime(s.startTime)} · ${s.weather ? wxEmoji(s.weather.code) + ' ' + s.weather.temp + '°F' : ''}</div>
+function getRecentSkills(){
+  return SKILLS
+    .filter(s=>skillsData[s.id]&&skillsData[s.id].status!=='not_started'&&skillsData[s.id].lastPracticed)
+    .sort((a,b)=>new Date(skillsData[b.id].lastPracticed)-new Date(skillsData[a.id].lastPracticed))
+    .slice(0,4);
+}
+
+function goalCard(reqs,totals){
+  if(!settings.goalDate)return'';
+  const today=new Date();today.setHours(0,0,0,0);
+  const goal=new Date(settings.goalDate+'T00:00:00');
+  const daysLeft=Math.ceil((goal-today)/86400000);
+  const hoursLeft=Math.max(reqs.total-totals.totalHours,0);
+  if(daysLeft<=0){
+    if(hoursLeft===0)return`<div class="card" style="background:var(--green-lt);border:1.5px solid var(--green)"><div style="font-weight:700;color:var(--green)">🎉 Goal date reached — requirements met!</div></div>`;
+    return`<div class="card" style="background:var(--red-lt);border:1.5px solid var(--red)"><div style="font-weight:700;color:var(--red)">⚠️ Goal date passed — ${hoursLeft.toFixed(1)} hrs still needed</div></div>`;
+  }
+  const weeksLeft=daysLeft/7;
+  const hrsPerWeek=hoursLeft/weeksLeft;
+  const onTrack=reqs.total===0||hrsPerWeek<=5;
+  const accent=onTrack?'var(--green)':'var(--amber)';
+  const accentLt=onTrack?'var(--green-lt)':'var(--amber-lt)';
+  const goalFmt=goal.toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'});
+  const daysLabel=daysLeft<14?`${daysLeft} days`:`${Math.round(weeksLeft)} weeks`;
+  if(hoursLeft===0)return`<div class="card" style="background:var(--green-lt);border:1.5px solid var(--green)"><div style="font-weight:700;color:var(--green)">✅ All hours complete! ${daysLabel} until ${goalFmt}.</div></div>`;
+  return`<div class="card" style="background:${accentLt};border:1.5px solid ${accent}">
+    <div class="goal-card-header" onclick="goalCollapsed=!goalCollapsed;document.getElementById('goal-body').style.display=goalCollapsed?'none':'block';document.getElementById('goal-chevron').textContent=goalCollapsed?'▼':'▲'">
+      <div>
+        <div style="font-weight:700;font-size:.9rem;color:${accent}">📅 Goal: ${goalFmt}</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:2px">${daysLabel} remaining</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="text-align:right"><div style="font-size:1.5rem;font-weight:800;color:${accent};line-height:1">${hrsPerWeek.toFixed(1)}</div><div style="font-size:.62rem;text-transform:uppercase;color:var(--muted)">hrs/week</div></div>
+        <button class="goal-collapse-btn" id="goal-chevron">▲</button>
+      </div>
     </div>
-    <div class="s-dur">${fmtDur(s.duration)}</div>
+    <div class="goal-card-body" id="goal-body" style="display:${goalCollapsed?'none':'block'}">
+      <div style="display:flex;gap:12px;font-size:.76rem;margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,.08)">
+        <span>⏱ ${hoursLeft.toFixed(1)} total hrs left</span>
+      </div>
+    </div>
   </div>`;
 }
 
-function progressRing(pct, color, size=110, stroke=11) {
-  const r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ * (1 - pct);
-  return `<svg width="${size}" height="${size}" style="transform:rotate(-90deg)">
+function progressRing(pct,color,size=106,stroke=10){
+  const r=(size-stroke)/2,circ=2*Math.PI*r,offset=circ*(1-pct);
+  return`<svg width="${size}" height="${size}" style="transform:rotate(-90deg)">
     <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--border)" stroke-width="${stroke}"/>
     <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
-      stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}"
-      stroke-linecap="round"/>
+      stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}" stroke-linecap="round"/>
   </svg>`;
 }
 
-// ═══════════════════════════════════════════════════════
-// SKILLS VIEW
-// ═══════════════════════════════════════════════════════
-function renderSkills() {
-  const total = SKILLS.length;
-  const practiced = SKILLS.filter(s => skills[s.id] === 1).length;
-  const mastered = SKILLS.filter(s => skills[s.id] === 2).length;
-  const done = practiced + mastered;
-  const pct = Math.round((mastered / total) * 100);
-
-  // Group by category
-  const cats = {};
-  for (const sk of SKILLS) {
-    if (!cats[sk.cat]) cats[sk.cat] = [];
-    cats[sk.cat].push(sk);
-  }
-
-  let catsHTML = '';
-  for (const [cat, skList] of Object.entries(cats)) {
-    const rows = skList.map(sk => {
-      const level = skills[sk.id] || 0;
-      return `<div class="skill-row">
-        <div class="skill-name">${sk.name}</div>
-        <div class="skill-btns">
-          <button class="skill-btn ${level === 0 ? '' : ''}" onclick="setSkill('${sk.id}', ${level === 0 ? 1 : 0})" title="Not started">—</button>
-          <button class="skill-btn ${level === 1 ? 'active-practiced' : ''}" onclick="setSkill('${sk.id}', ${level === 1 ? 0 : 1})" title="Practiced">Practiced</button>
-          <button class="skill-btn ${level === 2 ? 'active-mastered' : ''}" onclick="setSkill('${sk.id}', ${level === 2 ? 0 : 2})" title="Mastered">Mastered</button>
-        </div>
-      </div>`;
-    }).join('');
-    catsHTML += `<div class="skill-cat-title">${cat}</div><div class="card" style="padding:0 16px">${rows}</div>`;
-  }
-
-  document.getElementById('skills-content').innerHTML = `
-    <div class="section-title">Skills Checklist</div>
-    <div class="card">
-      <div class="skill-progress-label">
-        <span>${mastered} mastered · ${practiced} practiced · ${total - done} not started</span>
-        <span>${pct}% mastered</span>
-      </div>
-      <div class="skill-progress-bar"><div class="skill-progress-fill" style="width:${pct}%"></div></div>
+function sessionRowHTML(s, showSwipeDelete=true){
+  const addr=s.startLocation?.city||s.startLocation?.address||'Unknown location';
+  const now=new Date(),sessionDate=new Date(s.startTime);
+  const daysAgo=(now-sessionDate)/(1000*60*60*24);
+  const old=daysAgo>7?' old':'';
+  return`<div class="session-row${old}" data-id="${s.id}" style="touch-action:pan-y">
+    <div class="s-icon ${s.isNight?'s-night':'s-day'}">${s.isNight?'🌙':'☀️'}</div>
+    <div class="s-info">
+      <div class="s-title">${addr}</div>
+      <div class="s-meta">${fmtDate(s.startTime)} · ${fmtTime(s.startTime)}${s.supervisor?' · 👤 '+s.supervisor:''}${s.weather?' · '+wxEmoji(s.weather.code)+' '+s.weather.temp+'°F':''}</div>
     </div>
-    ${catsHTML}
+    <div class="s-dur">${fmtDur(s.duration)}</div>
+    ${showSwipeDelete?`<div class="swipe-delete-bg">🗑 Delete</div>`:''}
+  </div>`;
+}
+
+function emptyStateHTML(type,title,sub){
+  const svg=type==='car'
+    ?`<svg viewBox="0 0 80 80" fill="none"><rect x="10" y="28" width="60" height="28" rx="8" fill="currentColor"/><circle cx="22" cy="58" r="8" fill="var(--bg)" stroke="currentColor" stroke-width="3"/><circle cx="58" cy="58" r="8" fill="var(--bg)" stroke="currentColor" stroke-width="3"/><path d="M16 28l8-14h32l8 14" stroke="currentColor" stroke-width="3" fill="none"/></svg>`
+    :`<svg viewBox="0 0 80 80" fill="none"><rect x="15" y="10" width="50" height="60" rx="8" fill="currentColor"/><rect x="25" y="25" width="30" height="3" rx="1.5" fill="var(--bg)"/><rect x="25" y="35" width="20" height="3" rx="1.5" fill="var(--bg)"/><rect x="25" y="45" width="25" height="3" rx="1.5" fill="var(--bg)"/></svg>`;
+  return`<div class="empty-state">${svg}<div style="font-weight:600;font-size:.92rem;margin-top:4px">${title}</div><div class="e-lbl">${sub}</div></div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// SKILLS
+// ═══════════════════════════════════════════════════
+function renderSkills(){
+  const mastered=SKILLS.filter(s=>skillsData[s.id]?.status==='mastered').length;
+  const inProg=SKILLS.filter(s=>skillsData[s.id]?.status==='in_progress').length;
+  const total=SKILLS.length;
+  const cats=[...new Set(SKILLS.map(s=>s.cat))];
+  document.getElementById('skills-content').innerHTML=`
+    <div class="skills-summary">
+      <div class="skills-summary-box"><div class="sv" style="color:var(--green)">${mastered}</div><div class="sl">Mastered</div></div>
+      <div class="skills-summary-box"><div class="sv" style="color:var(--amber)">${inProg}</div><div class="sl">In Progress</div></div>
+      <div class="skills-summary-box"><div class="sv" style="color:var(--muted)">${total-mastered-inProg}</div><div class="sl">Not Started</div></div>
+    </div>
+    <button class="suggest-btn" onclick="suggestSkill()">🎯 Suggest a Skill to Practice</button>
+    ${cats.map(cat=>{
+      const catSkills=SKILLS.filter(s=>s.cat===cat);
+      return`<div class="skill-category-header">${cat}</div>
+        <div class="card" style="padding:8px 16px">
+          ${catSkills.map(skill=>{
+            const sd=skillsData[skill.id]||{status:'not_started'};
+            const isOpen=openSkillTip===skill.id;
+            return`<div class="skill-row" data-id="${skill.id}">
+              <span class="skill-label">${skill.label}</span>
+              <div class="skill-btns">
+                <button class="skill-btn ${sd.status==='in_progress'?'in_progress':''}" onclick="setSkill('${skill.id}','in_progress')">Learning</button>
+                <button class="skill-btn ${sd.status==='mastered'?'mastered':''}" onclick="setSkill('${skill.id}','mastered')">Mastered</button>
+              </div>
+              <button onclick="toggleTip('${skill.id}')" style="background:none;border:none;cursor:pointer;font-size:.8rem;color:var(--muted);padding:2px 6px;width:100%;text-align:left;margin-top:4px">
+                ${isOpen?'▲ Hide tips':'▼ Tips'}
+              </button>
+              <div class="skill-tips ${isOpen?'open':''}" id="tip-${skill.id}">
+                <ul>${skill.tips.map(t=>`<li>${t}</li>`).join('')}</ul>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`;
+    }).join('')}
+    <div style="height:20px"></div>
   `;
 }
 
-// ═══════════════════════════════════════════════════════
-// DRIVE VIEW
-// ═══════════════════════════════════════════════════════
-function renderDrive() {
-  const panel = document.getElementById('drive-panel');
-  const mapDiv = document.getElementById('drive-map');
+function toggleTip(id){
+  openSkillTip=openSkillTip===id?null:id;
+  renderSkills();
+}
 
-  if (pendingSession) {
-    // Wrap-up state
-    mapDiv.style.display = '';
-    if (!driveMap) initDriveMap();
-    else driveMap.invalidateSize();
-    renderWrapupPanel();
-  } else if (!activeSession) {
-    // Pre-drive state
-    mapDiv.style.display = 'none';
-    panel.innerHTML = `
-      <div id="drive-pre">
-        <h2>Ready to Drive?</h2>
-        <p>Allow location access when prompted.<br>Your route, weather, and drive time will be recorded automatically.</p>
-        <button class="btn-big btn-start" onclick="startDrive()">Start Drive</button>
-        <button class="btn-outline" style="width:100%;margin-top:10px" onclick="openManualModal()">Add Drive Manually</button>
-      </div>`;
-    if (driveMap) { driveMap.remove(); driveMap = null; }
+function setSkill(id,status){
+  vibrate(15);
+  skillsData[id]={status,lastPracticed:new Date().toISOString()};
+  saveSkillsData();
+  updateSkillsBadge();
+  renderSkills();
+}
+
+function suggestSkill(){
+  const unmastered=SKILLS.filter(s=>!skillsData[s.id]||skillsData[s.id].status!=='mastered');
+  if(!unmastered.length){toast('🏆 All skills mastered!');return;}
+  const pick=unmastered[Math.floor(Math.random()*unmastered.length)];
+  toast('🎯 Practice: '+pick.label);
+  openSkillTip=pick.id;
+  renderSkills();
+  setTimeout(()=>{
+    const el=document.getElementById('tip-'+pick.id);
+    if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
+  },100);
+}
+
+// ═══════════════════════════════════════════════════
+// DRIVE VIEW
+// ═══════════════════════════════════════════════════
+function renderDrive(){
+  const panel=document.getElementById('drive-panel');
+  const mapDiv=document.getElementById('drive-map');
+  if(!activeSession){
+    mapDiv.style.display='none';
+    const compass=document.getElementById('compass-el');
+    if(compass)compass.classList.remove('visible');
+    panel.innerHTML=`<div id="drive-pre">
+      <h2>Ready to Drive?</h2>
+      <p>Your route, time, speed, and weather are recorded automatically. Location access is optional.</p>
+      <button class="btn-big btn-start" onclick="startDrive()">Start Drive</button>
+      <button class="btn-outline" style="width:100%;margin-top:10px" onclick="openManualModal()">Add Drive Manually</button>
+    </div>`;
+    if(driveMap){driveMap.remove();driveMap=null;}
   } else {
-    // Active drive state
-    mapDiv.style.display = '';
-    if (!driveMap) initDriveMap();
+    mapDiv.style.display='';
+    if(!driveMap)initDriveMap();
     else driveMap.invalidateSize();
     renderDrivePanel();
   }
 }
 
-function renderWrapupPanel() {
-  const s = pendingSession;
-  document.getElementById('drive-panel').innerHTML = `
-    <div class="wrapup-title">📋 Save Drive</div>
-    <div class="wrapup-summary">
-      <div class="wrapup-stat">
-        <div class="ws-val">${fmtDur(s.duration)}</div>
-        <div class="ws-lbl">Time</div>
-      </div>
-      <div class="wrapup-stat">
-        <div class="ws-val">${(s.distance||0).toFixed(2)}</div>
-        <div class="ws-lbl">Miles</div>
-      </div>
-      <div class="wrapup-stat">
-        <div class="ws-val">${s.isNight ? '🌙' : '☀️'}</div>
-        <div class="ws-lbl">${s.isNight ? 'Night' : 'Day'}</div>
-      </div>
-      ${s.maxSpeedMph > 0 ? `<div class="wrapup-stat"><div class="ws-val">${s.maxSpeedMph}</div><div class="ws-lbl">Max MPH</div></div>` : ''}
-    </div>
-    <div class="form-group">
-      <label style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px">Supervisor Name</label>
-      <input type="text" id="wu-supervisor" placeholder="Supervisor name" class="inline-input">
-    </div>
-    <div class="form-group">
-      <label style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px">Supervisor License #</label>
-      <input type="text" id="wu-supervisor-lic" placeholder="License number" class="inline-input">
-    </div>
-    <button class="btn-big btn-start" style="margin-top:4px" onclick="savePendingDrive()">Save Drive</button>
-  `;
-}
-
-function initDriveMap() {
-  driveMap = L.map('drive-map', { zoomControl: true, attributionControl: true });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://openstreetmap.org">OSM</a>'
-  }).addTo(driveMap);
-  const session = activeSession || pendingSession;
-  drivePolyline = L.polyline([], { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(driveMap);
-  if (session && session.route.length > 0) {
-    drivePolyline.setLatLngs(session.route);
-    const last = session.route[session.route.length - 1];
-    driveMap.setView(last, 15);
-    if (drivePosMarker) drivePosMarker.remove();
-    drivePosMarker = L.circleMarker(last, { radius: 8, color: '#fff', weight: 2, fillColor: '#2563eb', fillOpacity: 1 }).addTo(driveMap);
+function initDriveMap(){
+  driveMap=L.map('drive-map',{zoomControl:true,attributionControl:true});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© <a href="https://openstreetmap.org">OSM</a>'}).addTo(driveMap);
+  drivePolyline=L.polyline([],{color:'var(--accent)',weight:4,opacity:.85}).addTo(driveMap);
+  if(activeSession&&activeSession.route.length>0){
+    drivePolyline.setLatLngs(activeSession.route.map(p=>[p[0],p[1]]));
+    const last=activeSession.route[activeSession.route.length-1];
+    driveMap.setView([last[0],last[1]],15);
+    setPulseMarker(last[0],last[1]);
   } else {
-    driveMap.setView([39.5, -98.35], 5);
+    driveMap.setView([39.5,-98.35],5);
   }
 }
 
-function renderDrivePanel() {
-  const s = activeSession;
-  const dist = routeDistMiles(s.route);
+function setPulseMarker(lat,lng){
+  const icon=L.divIcon({className:'',html:'<div class="pulse-dot"></div>',iconSize:[14,14],iconAnchor:[7,7]});
+  if(drivePosMarker)drivePosMarker.setLatLng([lat,lng]);
+  else drivePosMarker=L.marker([lat,lng],{icon,zIndexOffset:1000}).addTo(driveMap);
+}
 
-  document.getElementById('drive-panel').innerHTML = `
+function renderDrivePanel(){
+  const s=activeSession;
+  const dist=routeDistMiles(s.route);
+  const speedMph=s.lastSpeed!=null?(s.lastSpeed*2.23694):null;
+  document.getElementById('drive-panel').innerHTML=`
+    <div class="speedometer">
+      <div class="speed-val" id="speed-display">${speedMph!=null?speedMph.toFixed(0):'—'}</div>
+      <div class="speed-unit">mph</div>
+    </div>
     <div class="drive-stats">
       <div class="ds-box"><div class="dv" id="drive-timer">${fmtElapsed(s.startTime)}</div><div class="dl">Time</div></div>
       <div class="ds-box"><div class="dv">${dist.toFixed(2)}</div><div class="dl">Miles</div></div>
-      <div class="ds-box"><div class="dv" id="drive-speed">${s.lastSpeed != null ? (s.lastSpeed * 2.23694).toFixed(0) : '—'}</div><div class="dl">MPH</div></div>
-      <div class="ds-box"><div class="dv">${s.route.length}</div><div class="dl">Points</div></div>
+      <div class="ds-box"><div class="dv">${s.maxSpeed?''+s.maxSpeed.toFixed(0):'—'}</div><div class="dl">Top MPH</div></div>
     </div>
     <div class="drive-meta">
-      <span class="badge ${s.isNight ? 'night' : 'day'}">${s.isNight ? '🌙 Night' : '☀️ Day'}</span>
-      ${s.weather ? `<span>${wxEmoji(s.weather.code)} ${s.weather.temp}°F ${WX_DESC[s.weather.code]||''}</span>` : ''}
-      <span style="overflow:hidden;text-overflow:ellipsis">${s.startLocation?.city || s.startLocation?.address || '📍 Locating…'}</span>
+      <span class="badge ${s.isNight?'night':'day'}">${s.isNight?'🌙 Night':'☀️ Day'}</span>
+      ${s.weather?`<span>${wxEmoji(s.weather.code)} ${s.weather.temp}°F</span>`:''}
+      <span style="overflow:hidden;text-overflow:ellipsis">${s.startLocation?.city||s.startLocation?.address||'📍 Locating…'}</span>
     </div>
     <button class="btn-big btn-stop" onclick="stopDrive()">Stop Drive</button>`;
 }
 
-function startDrive() {
-  activeSession = {
-    id: genId(),
-    startTime: new Date().toISOString(),
-    endTime: null,
-    duration: 0,
-    isNight: isNightByTime(new Date()),
-    startLocation: null,
-    endLocation: null,
-    weather: null,
-    route: [],
-    distance: 0,
-    lastSpeed: null,
-    speedSamples: [],
-    maxSpeedMph: 0,
-    avgSpeedMph: 0,
-    notes: '',
-    supervisorName: '',
-    supervisorLic: ''
+async function startDrive(){
+  vibrate([30,50,30]);
+  activeSession={
+    id:genId(),startTime:new Date().toISOString(),endTime:null,
+    duration:0,isNight:isNightByTime(new Date()),
+    startLocation:null,endLocation:null,weather:null,
+    route:[],distance:0,lastSpeed:null,maxSpeed:null,avgSpeed:null,
+    speedSamples:[],notes:'',supervisor:'',supervisorLicense:''
   };
-
-  document.getElementById('live-badge').style.display = 'inline-block';
+  document.getElementById('live-badge').style.display='inline-block';
   document.querySelector('.drive-btn').classList.add('recording');
+  // Wake lock
+  try{if(navigator.wakeLock)wakeLock=await navigator.wakeLock.request('screen');}catch(e){}
   navigate('drive');
-
-  driveTimerInterval = setInterval(() => {
-    const el = document.getElementById('drive-timer');
-    if (el) el.textContent = fmtElapsed(activeSession.startTime);
-  }, 1000);
-
-  if (navigator.geolocation) {
-    gpsWatchId = navigator.geolocation.watchPosition(
-      pos => handleFirstFix(pos),
-      err => console.warn('GPS:', err.message),
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+  driveTimerInterval=setInterval(()=>{
+    const el=document.getElementById('drive-timer');
+    if(el)el.textContent=fmtElapsed(activeSession.startTime);
+  },1000);
+  if(navigator.geolocation){
+    gpsWatchId=navigator.geolocation.watchPosition(
+      pos=>handleFirstFix(pos),
+      err=>console.warn('GPS:',err.message),
+      {enableHighAccuracy:true,maximumAge:5000,timeout:15000}
     );
   }
 }
 
-async function handleFirstFix(pos) {
-  if (!activeSession) return;
-  if (gpsWatchId != null) navigator.geolocation.clearWatch(gpsWatchId);
-  const { latitude: lat, longitude: lng } = pos.coords;
-  activeSession.route.push([lat, lng]);
-  activeSession.lastSpeed = pos.coords.speed;
-  if (pos.coords.speed != null) {
-    const mph = pos.coords.speed * 2.23694;
+async function handleFirstFix(pos){
+  if(!activeSession)return;
+  if(gpsWatchId!=null)navigator.geolocation.clearWatch(gpsWatchId);
+  const{latitude:lat,longitude:lng,speed,heading,altitude}=pos.coords;
+  activeSession.route.push([lat,lng,altitude]);
+  activeSession.lastSpeed=speed;
+  if(speed!=null){const mph=speed*2.23694;activeSession.maxSpeed=mph;activeSession.speedSamples=[mph];}
+  const[wx,loc]=await Promise.all([fetchWeather(lat,lng),reverseGeocode(lat,lng)]);
+  if(!activeSession)return;
+  activeSession.weather=wx;activeSession.startLocation=loc;
+  if(wx)activeSession.isNight=!wx.isDay;
+  if(driveMap){
+    driveMap.setView([lat,lng],15);
+    setPulseMarker(lat,lng);
+    drivePolyline.setLatLngs([[lat,lng]]);
+  }
+  if(currentView==='drive')renderDrivePanel();
+  updateCompass(heading);
+  gpsWatchId=navigator.geolocation.watchPosition(onPosition,err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
+}
+
+function onPosition(pos){
+  if(!activeSession)return;
+  const{latitude:lat,longitude:lng,speed,heading,altitude}=pos.coords;
+  activeSession.lastSpeed=speed;
+  if(speed!=null){
+    const mph=speed*2.23694;
+    activeSession.speedSamples=activeSession.speedSamples||[];
     activeSession.speedSamples.push(mph);
+    if(mph>activeSession.maxSpeed)activeSession.maxSpeed=mph;
+    const speedEl=document.getElementById('speed-display');
+    if(speedEl)speedEl.textContent=mph.toFixed(0);
   }
-
-  const [wx, loc] = await Promise.all([fetchWeather(lat, lng), reverseGeocode(lat, lng)]);
-  if (!activeSession) return;
-  activeSession.weather = wx;
-  activeSession.startLocation = loc;
-  if (wx) activeSession.isNight = !wx.isDay;
-
-  if (driveMap) {
-    driveMap.setView([lat, lng], 15);
-    if (drivePosMarker) drivePosMarker.remove();
-    drivePosMarker = L.circleMarker([lat, lng], { radius: 8, color: '#fff', weight: 2, fillColor: '#2563eb', fillOpacity: 1 }).addTo(driveMap);
-    drivePolyline.setLatLngs(activeSession.route);
+  const route=activeSession.route;
+  if(route.length>0){
+    const last=route[route.length-1];
+    const d=haversineMeters(last[0],last[1],lat,lng);
+    if(d<5)return;
   }
-  if (currentView === 'drive') renderDrivePanel();
-
-  gpsWatchId = navigator.geolocation.watchPosition(
-    onPosition,
-    err => console.warn('GPS:', err.message),
-    { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
-  );
+  route.push([lat,lng,altitude]);
+  if(drivePolyline)drivePolyline.setLatLngs(route.map(p=>[p[0],p[1]]));
+  if(driveMap){
+    setPulseMarker(lat,lng);
+    driveMap.panTo([lat,lng],{animate:true,duration:0.5});
+  }
+  updateCompass(heading);
 }
 
-function onPosition(pos) {
-  if (!activeSession) return;
-  const { latitude: lat, longitude: lng, speed } = pos.coords;
-  activeSession.lastSpeed = speed;
-  if (speed != null) {
-    const mph = speed * 2.23694;
-    activeSession.speedSamples.push(mph);
+function updateCompass(heading){
+  const el=document.getElementById('compass-el');
+  if(!el)return;
+  if(heading!=null&&!isNaN(heading)){
+    el.classList.add('visible');
+    el.style.transform=`rotate(${heading}deg)`;
   }
-  const route = activeSession.route;
-  if (route.length > 0) {
-    const last = route[route.length - 1];
-    const d = haversineMeters(last[0], last[1], lat, lng);
-    if (d < 5) return;
-  }
-  route.push([lat, lng]);
-  if (drivePolyline) drivePolyline.setLatLngs(route);
-  if (driveMap) {
-    if (drivePosMarker) drivePosMarker.setLatLng([lat, lng]);
-    else drivePosMarker = L.circleMarker([lat, lng], { radius: 8, color: '#fff', weight: 2, fillColor: '#2563eb', fillOpacity: 1 }).addTo(driveMap);
-    driveMap.panTo([lat, lng], { animate: true, duration: 0.5 });
-  }
-  const distEl = document.querySelector('#drive-panel .drive-stats .ds-box:nth-child(2) .dv');
-  if (distEl) distEl.textContent = routeDistMiles(route).toFixed(2);
-  const ptEl = document.querySelector('#drive-panel .drive-stats .ds-box:nth-child(4) .dv');
-  if (ptEl) ptEl.textContent = route.length;
-  const spEl = document.getElementById('drive-speed');
-  if (spEl) spEl.textContent = speed != null ? (speed * 2.23694).toFixed(0) : '—';
 }
 
-async function stopDrive() {
-  if (!activeSession) return;
-  if (gpsWatchId != null) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
-  clearInterval(driveTimerInterval); driveTimerInterval = null;
-
-  const now = new Date();
-  activeSession.endTime = now.toISOString();
-  activeSession.duration = elapsedMin(activeSession.startTime);
-  activeSession.distance = routeDistMiles(activeSession.route);
-
-  // Compute speed stats
-  const samples = activeSession.speedSamples || [];
-  if (samples.length > 0) {
-    activeSession.maxSpeedMph = Math.round(Math.max(...samples));
-    activeSession.avgSpeedMph = Math.round(samples.reduce((a, b) => a + b, 0) / samples.length);
+async function stopDrive(){
+  if(!activeSession)return;
+  vibrate([50,30,50]);
+  if(gpsWatchId!=null){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null;}
+  clearInterval(driveTimerInterval);driveTimerInterval=null;
+  if(wakeLock){try{await wakeLock.release();}catch(e){}wakeLock=null;}
+  const now=new Date();
+  activeSession.endTime=now.toISOString();
+  activeSession.duration=elapsedMin(activeSession.startTime);
+  activeSession.distance=routeDistMiles(activeSession.route);
+  if(activeSession.speedSamples&&activeSession.speedSamples.length)
+    activeSession.avgSpeed=activeSession.speedSamples.reduce((a,b)=>a+b,0)/activeSession.speedSamples.length;
+  if(activeSession.route.length>0){
+    const last=activeSession.route[activeSession.route.length-1];
+    activeSession.endLocation=await reverseGeocode(last[0],last[1]);
   }
-
-  // Get end location
-  if (activeSession.route.length > 0) {
-    const last = activeSession.route[activeSession.route.length - 1];
-    activeSession.endLocation = await reverseGeocode(last[0], last[1]);
-  }
-
-  // Move to pending (wrap-up) state
-  pendingSession = { ...activeSession };
-  activeSession = null;
-
-  if (currentView === 'drive') renderDrive();
-}
-
-function savePendingDrive() {
-  if (!pendingSession) return;
-  pendingSession.supervisorName = (document.getElementById('wu-supervisor')?.value || '').trim();
-  pendingSession.supervisorLic = (document.getElementById('wu-supervisor-lic')?.value || '').trim();
-
-  sessions.push({ ...pendingSession });
-  saveSessions();
-  checkMilestones();
-  pendingSession = null;
-
-  document.getElementById('live-badge').style.display = 'none';
+  sessions.push({...activeSession});
+  saveSessions();activeSession=null;
+  document.getElementById('live-badge').style.display='none';
   document.querySelector('.drive-btn').classList.remove('recording');
-  if (driveMap) { driveMap.remove(); driveMap = null; drivePolyline = null; drivePosMarker = null; }
-
-  toast('Drive saved!');
+  const compass=document.getElementById('compass-el');
+  if(compass)compass.classList.remove('visible');
+  if(driveMap){driveMap.remove();driveMap=null;drivePolyline=null;drivePosMarker=null;}
+  checkMilestones();
+  toast('Drive saved! 🎉');
   navigate('dashboard');
 }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
 // HISTORY
-// ═══════════════════════════════════════════════════════
-function renderHistory() {
-  const sorted = [...sessions].sort((a,b) => new Date(b.startTime)-new Date(a.startTime));
-  let filtered = sorted;
-  if (historyFilter === 'day') filtered = sorted.filter(s => !s.isNight);
-  else if (historyFilter === 'night') filtered = sorted.filter(s => s.isNight);
-
-  document.getElementById('history-content').innerHTML = `
+// ═══════════════════════════════════════════════════
+function renderHistory(){
+  let sorted=[...sessions].sort((a,b)=>new Date(b.startTime)-new Date(a.startTime));
+  if(historySort==='oldest')sorted=[...sessions].sort((a,b)=>new Date(a.startTime)-new Date(b.startTime));
+  else if(historySort==='longest')sorted=[...sessions].sort((a,b)=>(b.duration||0)-(a.duration||0));
+  else if(historySort==='shortest')sorted=[...sessions].sort((a,b)=>(a.duration||0)-(b.duration||0));
+  else if(historySort==='farthest')sorted=[...sessions].sort((a,b)=>(b.distance||0)-(a.distance||0));
+  let filtered=sorted;
+  if(historyFilter==='day')filtered=sorted.filter(s=>!s.isNight);
+  else if(historyFilter==='night')filtered=sorted.filter(s=>s.isNight);
+  if(historySearch){
+    const q=historySearch.toLowerCase();
+    filtered=filtered.filter(s=>(s.startLocation?.address||'').toLowerCase().includes(q)||(s.notes||'').toLowerCase().includes(q)||(s.supervisor||'').toLowerCase().includes(q));
+  }
+  // Group by month
+  const groups={};
+  for(const s of filtered){
+    const key=new Date(s.startTime).toLocaleDateString([],{year:'numeric',month:'long'});
+    if(!groups[key])groups[key]=[];
+    groups[key].push(s);
+  }
+  const groupHTML=Object.entries(groups).map(([month,list])=>{
+    const monthHrs=list.reduce((a,s)=>a+(s.duration||0)/60,0);
+    return`<div class="month-header">
+      <span class="month-header-label">${month}</span>
+      <span class="month-header-total">${monthHrs.toFixed(1)} hrs</span>
+    </div>
+    <div class="card">${list.map(s=>sessionRowHTML(s,true)).join('')}</div>`;
+  }).join('');
+  document.getElementById('history-content').innerHTML=`
+    <div class="history-toolbar">
+      <input class="history-search" type="search" placeholder="Search location, supervisor…" value="${historySearch}" oninput="historySearch=this.value;renderHistory()">
+      <select class="history-sort" onchange="historySort=this.value;renderHistory()">
+        <option value="newest" ${historySort==='newest'?'selected':''}>Newest</option>
+        <option value="oldest" ${historySort==='oldest'?'selected':''}>Oldest</option>
+        <option value="longest" ${historySort==='longest'?'selected':''}>Longest</option>
+        <option value="shortest" ${historySort==='shortest'?'selected':''}>Shortest</option>
+        <option value="farthest" ${historySort==='farthest'?'selected':''}>Farthest</option>
+      </select>
+    </div>
     <div class="filter-bar">
       <button class="filter-chip ${historyFilter==='all'?'active':''}" onclick="setFilter('all')">All (${sorted.length})</button>
       <button class="filter-chip ${historyFilter==='day'?'active':''}" onclick="setFilter('day')">☀️ Day</button>
       <button class="filter-chip ${historyFilter==='night'?'active':''}" onclick="setFilter('night')">🌙 Night</button>
       <button class="filter-chip" onclick="openManualModal()" style="margin-left:auto">+ Add</button>
     </div>
-    ${filtered.length ? `<div class="card">${filtered.map(sessionRow).join('')}</div>` : `<div class="empty-state"><div class="e-icon">📋</div><div>No sessions yet.</div></div>`}
+    ${filtered.length?groupHTML:emptyStateHTML('list','No sessions found','Try a different filter or search')}
   `;
-  document.querySelectorAll('.session-row').forEach(r => {
-    r.addEventListener('click', () => showSessionDetail(r.dataset.id));
+  // Row click + swipe to delete
+  document.querySelectorAll('.session-row').forEach(row=>{
+    row.addEventListener('click',e=>{
+      if(e.target.classList.contains('swipe-delete-bg'))return;
+      showSessionDetail(row.dataset.id);
+    });
+    setupSwipeDelete(row);
   });
 }
 
-function setFilter(f) { historyFilter = f; renderHistory(); }
+function setupSwipeDelete(row){
+  let startX=0,dx=0;
+  const bg=row.querySelector('.swipe-delete-bg');
+  if(!bg)return;
+  row.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;dx=0;},{passive:true});
+  row.addEventListener('touchmove',e=>{
+    dx=e.touches[0].clientX-startX;
+    if(dx<0){
+      const offset=Math.max(dx,-80);
+      row.style.transform=`translateX(${offset}px)`;
+      bg.style.transform=`translateX(${100+offset/0.8}%)`;
+    }
+  },{passive:true});
+  row.addEventListener('touchend',()=>{
+    if(dx<-60){
+      if(confirm('Delete this session?')){
+        deleteSession(row.dataset.id,false);return;
+      }
+    }
+    row.style.transform='';
+    bg.style.transform='';
+  });
+}
 
-// ═══════════════════════════════════════════════════════
+function setFilter(f){historyFilter=f;renderHistory();}
+
+// ═══════════════════════════════════════════════════
 // SESSION DETAIL MODAL
-// ═══════════════════════════════════════════════════════
-function showSessionDetail(id) {
-  const s = sessions.find(x => x.id === id);
-  if (!s) return;
-  activeSessionId = id;
+// ═══════════════════════════════════════════════════
+let currentDetailSession = null;
 
-  document.getElementById('modal-title').textContent = fmtDate(s.startTime);
-  const body = document.getElementById('modal-body');
-  body.innerHTML = `
+function showSessionDetail(id){
+  const s=sessions.find(x=>x.id===id);
+  if(!s)return;
+  activeSessionId=id;currentDetailSession=s;
+  document.getElementById('modal-title').textContent=fmtDate(s.startTime);
+  const alts=s.route?s.route.filter(p=>p[2]!=null).map(p=>p[2]):[];
+  const elevHTML=alts.length>=4?buildElevationSVG(alts):'';
+  document.getElementById('modal-body').innerHTML=`
     <div class="detail-grid">
       <div class="detail-item"><div class="di-label">Start</div><div class="di-val">${fmtTime(s.startTime)}</div></div>
       <div class="detail-item"><div class="di-label">End</div><div class="di-val">${fmtTime(s.endTime)}</div></div>
       <div class="detail-item"><div class="di-label">Duration</div><div class="di-val">${fmtDur(s.duration)}</div></div>
       <div class="detail-item"><div class="di-label">Distance</div><div class="di-val">${(s.distance||0).toFixed(2)} mi</div></div>
-      <div class="detail-item"><div class="di-label">Conditions</div><div class="di-val">${s.isNight ? '🌙 Night' : '☀️ Day'}</div></div>
-      <div class="detail-item"><div class="di-label">Weather</div><div class="di-val">${s.weather ? wxEmoji(s.weather.code)+' '+s.weather.temp+'°F' : '—'}</div></div>
-      <div class="detail-item"><div class="di-label">Max Speed</div><div class="di-val">${s.maxSpeedMph > 0 ? s.maxSpeedMph + ' mph' : '—'}</div></div>
-      <div class="detail-item"><div class="di-label">Avg Speed</div><div class="di-val">${s.avgSpeedMph > 0 ? s.avgSpeedMph + ' mph' : '—'}</div></div>
-      <div class="detail-item"><div class="di-label">Supervisor</div><div class="di-val">${s.supervisorName || '—'}</div></div>
-      <div class="detail-item"><div class="di-label">License #</div><div class="di-val">${s.supervisorLic || '—'}</div></div>
-      <div class="detail-item" style="grid-column:1/-1"><div class="di-label">From</div><div class="di-val">${s.startLocation?.address || '—'}</div></div>
-      <div class="detail-item" style="grid-column:1/-1"><div class="di-label">To</div><div class="di-val">${s.endLocation?.address || '—'}</div></div>
-      ${s.weather ? `<div class="detail-item" style="grid-column:1/-1"><div class="di-label">Wind</div><div class="di-val">${s.weather.windSpeed} mph · ${WX_DESC[s.weather.code]||'—'}</div></div>` : ''}
+      <div class="detail-item"><div class="di-label">Conditions</div><div class="di-val">${s.isNight?'🌙 Night':'☀️ Day'}</div></div>
+      <div class="detail-item"><div class="di-label">Weather</div><div class="di-val">${s.weather?wxEmoji(s.weather.code)+' '+s.weather.temp+'°F':'—'}</div></div>
+      ${s.maxSpeed?`<div class="detail-item"><div class="di-label">Top Speed</div><div class="di-val">${s.maxSpeed.toFixed(0)} mph</div></div>`:''}
+      ${s.avgSpeed?`<div class="detail-item"><div class="di-label">Avg Speed</div><div class="di-val">${s.avgSpeed.toFixed(0)} mph</div></div>`:''}
+      <div class="detail-item" style="grid-column:1/-1"><div class="di-label">From</div><div class="di-val">${s.startLocation?.address||'—'}</div></div>
+      <div class="detail-item" style="grid-column:1/-1"><div class="di-label">To</div><div class="di-val">${s.endLocation?.address||'—'}</div></div>
+      ${s.supervisor?`<div class="detail-item" style="grid-column:1/-1"><div class="di-label">Supervisor</div><div class="di-val">👤 ${s.supervisor}${s.supervisorLicense?' ('+s.supervisorLicense+')':''}</div></div>`:''}
+      ${s.weather?`<div class="detail-item" style="grid-column:1/-1"><div class="di-label">Wind</div><div class="di-val">${s.weather.windSpeed} mph · ${WX_DESC[s.weather.code]||'—'}</div></div>`:''}
     </div>
+    ${elevHTML}
     <div class="notes-label">Notes</div>
-    <textarea id="detail-notes" placeholder="Add notes for this drive…">${s.notes || ''}</textarea>
+    <textarea id="detail-notes" placeholder="Add notes…">${s.notes||''}</textarea>
   `;
-
-  document.getElementById('modal-del-btn').onclick = () => deleteSession(id);
-  document.getElementById('modal-edit-btn').onclick = () => { closeModal(); openManualModal(id); };
-  document.getElementById('modal-save-btn').onclick = () => saveNotes(id);
+  const replayBtn=document.getElementById('replay-btn');
+  if(replayBtn)replayBtn.style.display=s.route&&s.route.length>2?'block':'none';
+  document.getElementById('modal-del-btn').onclick=()=>deleteSession(id);
+  document.getElementById('modal-edit-btn').onclick=()=>{closeModal();openManualModal(id);};
+  document.getElementById('modal-save-btn').onclick=()=>saveNotes(id);
   document.getElementById('modal').classList.add('open');
-
-  setTimeout(() => initDetailMap(s), 80);
+  setTimeout(()=>initDetailMap(s),80);
 }
 
-function initDetailMap(s) {
-  if (detailMap) { detailMap.remove(); detailMap = null; }
-  if (!s.route || s.route.length < 2) {
-    document.getElementById('detail-map').innerHTML = '<div style="height:220px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.85rem;background:var(--bg)">No route recorded</div>';
+function buildElevationSVG(alts){
+  const min=Math.min(...alts),max=Math.max(...alts),range=max-min||1;
+  const w=280,h=50;
+  const pts=alts.map((a,i)=>`${(i/(alts.length-1)*w).toFixed(1)},${(h-(a-min)/range*h).toFixed(1)}`).join(' ');
+  return`<div class="elevation-wrap">
+    <div class="di-label">Elevation Profile</div>
+    <svg width="100%" viewBox="0 0 ${w} ${h+4}" style="display:block;border-radius:6px">
+      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--muted);margin-top:2px">
+      <span>Low: ${(min*3.28084).toFixed(0)}ft</span><span>High: ${(max*3.28084).toFixed(0)}ft</span>
+    </div>
+  </div>`;
+}
+
+function initDetailMap(s){
+  if(detailMap){detailMap.remove();detailMap=null;}
+  if(!s.route||s.route.length<2){
+    document.getElementById('detail-map').innerHTML='<div style="height:200px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.85rem;background:var(--bg)">No route recorded</div>';
     return;
   }
-  detailMap = L.map('detail-map', { zoomControl: false, attributionControl: false });
+  detailMap=L.map('detail-map',{zoomControl:false,attributionControl:false});
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(detailMap);
-  const line = L.polyline(s.route, { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(detailMap);
-  L.circleMarker(s.route[0], { radius: 8, color: '#fff', weight: 2, fillColor: '#16a34a', fillOpacity: 1 }).addTo(detailMap);
-  L.circleMarker(s.route[s.route.length - 1], { radius: 8, color: '#fff', weight: 2, fillColor: '#dc2626', fillOpacity: 1 }).addTo(detailMap);
-  detailMap.fitBounds(line.getBounds(), { padding: [20, 20] });
+  const latlngs=s.route.map(p=>[p[0],p[1]]);
+  const line=L.polyline(latlngs,{color:'var(--accent)',weight:4,opacity:.85}).addTo(detailMap);
+  L.circleMarker(latlngs[0],{radius:8,color:'#fff',weight:2,fillColor:'#16a34a',fillOpacity:1}).addTo(detailMap);
+  L.circleMarker(latlngs[latlngs.length-1],{radius:8,color:'#fff',weight:2,fillColor:'#dc2626',fillOpacity:1}).addTo(detailMap);
+  detailMap.fitBounds(line.getBounds(),{padding:[20,20]});
 }
 
-function closeModal() {
+function startReplay(){
+  if(!currentDetailSession||!currentDetailSession.route)return;
+  if(replayInterval)clearInterval(replayInterval);
+  if(replayMarker){replayMarker.remove();replayMarker=null;}
+  const route=currentDetailSession.route;
+  if(!detailMap||route.length<2)return;
+  const icon=L.divIcon({className:'',html:'<div class="pulse-dot"></div>',iconSize:[14,14],iconAnchor:[7,7]});
+  replayMarker=L.marker([route[0][0],route[0][1]],{icon}).addTo(detailMap);
+  let i=1;
+  const step=Math.max(1,Math.floor(route.length/60));
+  replayInterval=setInterval(()=>{
+    if(i>=route.length){clearInterval(replayInterval);return;}
+    replayMarker.setLatLng([route[i][0],route[i][1]]);
+    detailMap.panTo([route[i][0],route[i][1]],{animate:false});
+    i+=step;
+  },80);
+  toast('▶ Replaying route…');
+}
+
+function shareSession(){
+  const s=currentDetailSession;
+  if(!s)return;
+  const canvas=document.createElement('canvas');
+  canvas.width=600;canvas.height=320;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#0f172a';ctx.fillRect(0,0,600,320);
+  ctx.fillStyle='#2563eb';ctx.font='bold 28px -apple-system,sans-serif';ctx.fillText('DriveLog',30,46);
+  ctx.fillStyle='#f1f5f9';ctx.font='bold 20px -apple-system,sans-serif';
+  ctx.fillText((settings.driverName||'Driver')+' — '+fmtDate(s.startTime),30,90);
+  ctx.fillStyle='#94a3b8';ctx.font='15px -apple-system,sans-serif';
+  ctx.fillText('Duration: '+fmtDur(s.duration),30,130);
+  ctx.fillText('Distance: '+(s.distance||0).toFixed(2)+' mi',30,158);
+  ctx.fillText((s.isNight?'🌙 Night':'☀️ Day')+(s.weather?' · '+s.weather.temp+'°F':''),30,186);
+  if(s.maxSpeed)ctx.fillText('Top Speed: '+s.maxSpeed.toFixed(0)+' mph',30,214);
+  const reqs=getReqs(),totals=getTotals();
+  if(reqs.total>0){
+    ctx.fillStyle='#2563eb';ctx.font='bold 40px -apple-system,sans-serif';
+    ctx.fillText(Math.round(totals.totalHours/reqs.total*100)+'%',440,180);
+    ctx.fillStyle='#94a3b8';ctx.font='13px -apple-system,sans-serif';
+    ctx.fillText('of goal',445,202);
+  }
+  ctx.fillStyle='#334155';ctx.font='12px -apple-system,sans-serif';ctx.fillText('via DriveLog',30,295);
+  canvas.toBlob(blob=>{
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download='drive-'+s.id+'.png';a.click();
+    URL.revokeObjectURL(url);
+    toast('Drive card saved!');
+  });
+}
+
+function closeModal(){
   document.getElementById('modal').classList.remove('open');
-  activeSessionId = null;
-  if (detailMap) { detailMap.remove(); detailMap = null; }
+  activeSessionId=null;currentDetailSession=null;
+  if(replayInterval){clearInterval(replayInterval);replayInterval=null;}
+  if(replayMarker){replayMarker.remove();replayMarker=null;}
+  if(detailMap){detailMap.remove();detailMap=null;}
 }
 
-function saveNotes(id) {
-  const s = sessions.find(x => x.id === id);
-  if (!s) return;
-  s.notes = document.getElementById('detail-notes').value;
-  saveSessions();
-  toast('Notes saved');
-  closeModal();
+function saveNotes(id){
+  const s=sessions.find(x=>x.id===id);if(!s)return;
+  s.notes=document.getElementById('detail-notes').value;
+  saveSessions();toast('Notes saved');closeModal();
 }
 
-function deleteSession(id) {
-  if (!confirm('Delete this session? This cannot be undone.')) return;
-  sessions = sessions.filter(x => x.id !== id);
-  saveSessions();
-  toast('Session deleted');
-  closeModal();
-  if (currentView === 'history') renderHistory();
-  else if (currentView === 'dashboard') renderDashboard();
+function deleteSession(id,confirm_=true){
+  if(confirm_&&!confirm('Delete this session? This cannot be undone.'))return;
+  sessions=sessions.filter(x=>x.id!==id);
+  saveSessions();toast('Session deleted');closeModal();
+  if(currentView==='history')renderHistory();
+  else if(currentView==='dashboard')renderDashboard();
 }
 
-document.getElementById('modal').addEventListener('click', e => {
-  if (e.target === document.getElementById('modal')) closeModal();
-});
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))closeModal();});
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
 // SETTINGS
-// ═══════════════════════════════════════════════════════
-function renderSettings() {
-  const reqs = getReqs();
-  const stateOptions = Object.entries(STATE_REQS)
-    .map(([k,v]) => `<option value="${k}" ${k===settings.state?'selected':''}>${v.name}</option>`)
-    .join('');
-
-  document.getElementById('settings-content').innerHTML = `
+// ═══════════════════════════════════════════════════
+function renderSettings(){
+  const reqs=getReqs();
+  const stateOptions=Object.entries(STATE_REQS).map(([k,v])=>`<option value="${k}" ${k===settings.state?'selected':''}>${v.name}</option>`).join('');
+  const accentSwatches=ACCENT_COLORS.map(c=>`<div class="color-swatch ${c.id===settings.accentId?'active':''}" style="background:${c.main}" onclick="setAccent('${c.id}')" title="${c.label}"></div>`).join('');
+  document.getElementById('settings-content').innerHTML=`
     <div class="card">
-      <div class="form-group">
-        <label>Driver Name</label>
-        <input id="s-name" type="text" value="${settings.driverName}" placeholder="e.g. Alex" onchange="saveSettingsForm()" onblur="saveSettingsForm()">
-      </div>
-      <div class="form-group">
-        <label>Goal Date (optional)</label>
-        <input id="s-goal" type="date" value="${settings.goalDate || ''}" onchange="saveSettingsForm()" style="color-scheme:${settings.darkMode?'dark':'light'}">
-      </div>
-      <div class="form-group">
-        <label>State</label>
-        <select id="s-state" onchange="previewState(this.value);saveSettingsForm()">${stateOptions}</select>
+      <div class="form-group"><label>Driver Name</label><input id="s-name" type="text" value="${settings.driverName}" placeholder="e.g. Alex"></div>
+      <div class="form-group"><label>Goal Date (optional)</label><input id="s-goal" type="date" value="${settings.goalDate||''}" style="color-scheme:light dark"></div>
+      <div class="form-group"><label>State</label>
+        <select id="s-state" onchange="previewState(this.value)">${stateOptions}</select>
         <div class="req-display">
-          <div class="req-box"><div class="rv" id="req-total">${reqs.total || '—'}</div><div class="rl">Total Hours</div></div>
-          <div class="req-box night"><div class="rv" id="req-night">${reqs.night || '—'}</div><div class="rl">Night Hours</div></div>
+          <div class="req-box"><div class="rv" id="req-total">${reqs.total||'—'}</div><div class="rl">Total Hours</div></div>
+          <div class="req-box night-box"><div class="rv" id="req-night">${reqs.night||'—'}</div><div class="rl">Night Hours</div></div>
         </div>
-        ${reqs.note ? `<div class="note-box" id="req-note">ℹ️ ${reqs.note}</div>` : '<div id="req-note"></div>'}
+        ${reqs.note?`<div class="note-box" id="req-note">ℹ️ ${reqs.note}</div>`:'<div id="req-note"></div>'}
       </div>
+      <button class="btn-save" onclick="saveSettingsForm()">Save Settings</button>
     </div>
     <div class="card">
       <div class="section-title" style="margin-top:0">Override Hours (optional)</div>
       <div style="display:flex;gap:10px">
-        <div class="form-group" style="flex:1">
-          <label>Total Hours</label>
-          <input id="s-custom-total" type="number" min="0" max="999" step="1" value="${settings.customTotal != null ? settings.customTotal : ''}" placeholder="State default" onchange="saveSettingsForm()" onblur="saveSettingsForm()">
-        </div>
-        <div class="form-group" style="flex:1">
-          <label>Night Hours</label>
-          <input id="s-custom-night" type="number" min="0" max="999" step="1" value="${settings.customNight != null ? settings.customNight : ''}" placeholder="State default" onchange="saveSettingsForm()" onblur="saveSettingsForm()">
-        </div>
+        <div class="form-group" style="flex:1"><label>Total Hours</label><input id="s-custom-total" type="number" min="0" max="999" value="${settings.customTotal!=null?settings.customTotal:''}" placeholder="State default"></div>
+        <div class="form-group" style="flex:1"><label>Night Hours</label><input id="s-custom-night" type="number" min="0" max="999" value="${settings.customNight!=null?settings.customNight:''}" placeholder="State default"></div>
       </div>
     </div>
     <div class="card">
       <div class="section-title" style="margin-top:0">Appearance</div>
-      <div class="toggle-row">
-        <label for="s-dark">Dark Mode</label>
-        <label class="toggle">
-          <input type="checkbox" id="s-dark" ${settings.darkMode ? 'checked' : ''} onchange="toggleDarkMode(this.checked)">
-          <span class="toggle-slider"></span>
-        </label>
+      <div class="toggle-row"><span style="font-size:.88rem;font-weight:500">Dark Mode</span>
+        <label class="toggle"><input type="checkbox" id="s-dark" ${settings.darkMode?'checked':''} onchange="toggleDark(this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="form-group"><label>Accent Color</label><div class="color-swatches">${accentSwatches}</div></div>
+      <div class="form-group"><label>Text Size</label>
+        <div class="font-size-btns">
+          <div class="font-size-btn ${settings.fontSize==='small'?'active':''}" onclick="setFontSize('small')" style="font-size:13px">Small</div>
+          <div class="font-size-btn ${settings.fontSize==='medium'?'active':''}" onclick="setFontSize('medium')" style="font-size:15px">Medium</div>
+          <div class="font-size-btn ${settings.fontSize==='large'?'active':''}" onclick="setFontSize('large')" style="font-size:17px">Large</div>
+        </div>
       </div>
     </div>
-    <div style="font-size:.72rem;color:var(--muted);text-align:center;margin-bottom:4px">Settings save automatically</div>
-
-    <div class="section-title">Export / Import</div>
-    <div class="btn-row" style="margin-bottom:10px">
+    <div class="section-title">Data</div>
+    <div class="btn-row">
       <button class="btn-outline" onclick="exportJSON()">Export JSON</button>
       <button class="btn-outline" onclick="exportCSV()">Export CSV</button>
     </div>
-    <div class="btn-row" style="margin-bottom:10px">
-      <button class="btn-outline" onclick="document.getElementById('import-file').click()">Import JSON</button>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn-outline" onclick="importData()">Import JSON</button>
       <button class="btn-outline" onclick="printLog()">Print Log</button>
     </div>
-    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(this)">
-
     <div class="section-title">Danger Zone</div>
-    <div class="btn-row">
-      <button class="btn-danger" onclick="clearAllData()">Clear All Data</button>
-    </div>
-    <div style="height:20px"></div>
-
-    <div style="text-align:center;font-size:.72rem;color:var(--muted);margin-top:8px;line-height:1.7">
-      Hour requirements sourced from IIHS and state DMV sites.<br>
-      Always verify with your state's official DMV.
-    </div>
+    <div class="btn-row"><button class="btn-danger" onclick="clearAllData()">Clear All Data</button></div>
+    <div style="height:24px"></div>
+    <div style="text-align:center;font-size:.68rem;color:var(--muted);line-height:1.7">Hour requirements sourced from IIHS and state DMV sites.<br>Always verify with your state's official DMV.</div>
   `;
 }
 
-function toggleDarkMode(val) {
-  settings.darkMode = val;
-  saveSettings();
-  applyDarkMode();
+function previewState(code){
+  const st=STATE_REQS[code];if(!st)return;
+  document.getElementById('req-total').textContent=st.total||'—';
+  document.getElementById('req-night').textContent=st.night||'—';
+  document.getElementById('req-note').innerHTML=st.note?`<div class="note-box">ℹ️ ${st.note}</div>`:'';
 }
 
-function previewState(code) {
-  const st = STATE_REQS[code];
-  if (!st) return;
-  document.getElementById('req-total').textContent = st.total || '—';
-  document.getElementById('req-night').textContent = st.night || '—';
-  document.getElementById('req-note').innerHTML = st.note ? `<div class="note-box">ℹ️ ${st.note}</div>` : '';
+function saveSettingsForm(){
+  settings.driverName=document.getElementById('s-name').value.trim();
+  settings.state=document.getElementById('s-state').value;
+  const ct=document.getElementById('s-custom-total').value;
+  const cn=document.getElementById('s-custom-night').value;
+  settings.customTotal=ct!==''?+ct:null;
+  settings.customNight=cn!==''?+cn:null;
+  settings.goalDate=document.getElementById('s-goal').value||'';
+  saveSettings();applyTheme();toast('Settings saved ✓');
 }
 
-function saveSettingsForm() {
-  settings.driverName = document.getElementById('s-name').value.trim();
-  settings.state = document.getElementById('s-state').value;
-  const ct = document.getElementById('s-custom-total').value;
-  const cn = document.getElementById('s-custom-night').value;
-  settings.customTotal = ct !== '' ? +ct : null;
-  settings.customNight = cn !== '' ? +cn : null;
-  settings.goalDate = document.getElementById('s-goal').value || '';
-  saveSettings();
+function toggleDark(v){settings.darkMode=v;saveSettings();applyTheme();}
+function setAccent(id){settings.accentId=id;saveSettings();applyTheme();renderSettings();}
+function setFontSize(sz){settings.fontSize=sz;saveSettings();applyTheme();renderSettings();}
+
+function clearAllData(){
+  if(!confirm('Delete ALL sessions, skills, and settings? This cannot be undone.'))return;
+  sessions=[];settings=defaultSettings();skillsData={};
+  saveSessions();saveSettings();saveSkillsData();
+  localStorage.removeItem('dl_milestones');
+  applyTheme();toast('All data cleared');renderSettings();
 }
 
-function clearAllData() {
-  if (!confirm('Delete ALL sessions, skills, and settings? This cannot be undone.')) return;
-  sessions = [];
-  settings = defaultSettings();
-  skills = {};
-  saveSessions(); saveSettings(); saveSkills(skills);
-  toast('All data cleared');
-  renderSettings();
+// ═══════════════════════════════════════════════════
+// EXPORT / IMPORT / PRINT
+// ═══════════════════════════════════════════════════
+function exportJSON(){
+  download('drivelog.json',JSON.stringify({settings,sessions,skills:skillsData,exported:new Date().toISOString()},null,2),'application/json');
 }
 
-// ═══════════════════════════════════════════════════════
-// EXPORT & IMPORT
-// ═══════════════════════════════════════════════════════
-function exportJSON() {
-  const data = { settings, sessions, skills, exported: new Date().toISOString(), version: 2 };
-  download('drivelog.json', JSON.stringify(data, null, 2), 'application/json');
+function exportCSV(){
+  const rows=[['ID','Date','Start','End','Duration(min)','Distance(mi)','Night','MaxSpeed(mph)','AvgSpeed(mph)','Weather','Temp(F)','Wind(mph)','Supervisor','From','To','Notes']];
+  for(const s of sessions){
+    rows.push([s.id,fmtDate(s.startTime),fmtTime(s.startTime),fmtTime(s.endTime),
+      (s.duration||0).toFixed(1),(s.distance||0).toFixed(2),s.isNight?'Yes':'No',
+      s.maxSpeed?s.maxSpeed.toFixed(0):'',s.avgSpeed?s.avgSpeed.toFixed(0):'',
+      s.weather?(WX_DESC[s.weather.code]||''):'',s.weather?s.weather.temp:'',s.weather?s.weather.windSpeed:'',
+      s.supervisor||'',s.startLocation?.address||'',s.endLocation?.address||'',
+      (s.notes||'').replace(/,/g,'；').replace(/\n/g,' ')]);
+  }
+  download('drivelog.csv',rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n'),'text/csv');
 }
 
-function exportCSV() {
-  const rows = [['#','Date','Start','End','Duration (min)','Distance (mi)','D/N','Supervisor','License#','Location','Weather','Temp (F)','Wind (mph)','Max Speed (mph)','Avg Speed (mph)','Notes']];
-  const sorted = [...sessions].sort((a,b) => new Date(a.startTime)-new Date(b.startTime));
-  sorted.forEach((s, i) => {
-    rows.push([
-      i + 1,
-      fmtDate(s.startTime),
-      fmtTime(s.startTime),
-      fmtTime(s.endTime),
-      (s.duration||0).toFixed(1),
-      (s.distance||0).toFixed(2),
-      s.isNight ? 'Night' : 'Day',
-      s.supervisorName || '',
-      s.supervisorLic || '',
-      s.startLocation?.city || s.startLocation?.address || '',
-      s.weather ? (WX_DESC[s.weather.code]||'') : '',
-      s.weather ? s.weather.temp : '',
-      s.weather ? s.weather.windSpeed : '',
-      s.maxSpeedMph || '',
-      s.avgSpeedMph || '',
-      (s.notes||'').replace(/,/g,'；').replace(/\n/g,' ')
-    ]);
-  });
-  const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-  download('drivelog.csv', csv, 'text/csv');
-}
-
-function importJSON(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (!data.sessions) { toast('Invalid file'); return; }
-      const replace = confirm('OK = Replace all data\nCancel = Merge (add new sessions only)');
-      if (replace) {
-        sessions = data.sessions || [];
-        if (data.settings) settings = { ...defaultSettings(), ...data.settings };
-        if (data.skills) skills = data.skills;
-        saveSessions(); saveSettings(); saveSkills(skills);
-        applyDarkMode();
-        toast('Import complete — all data replaced');
+function importData(){
+  const input=document.createElement('input');input.type='file';input.accept='.json';
+  input.onchange=async e=>{
+    const file=e.target.files[0];if(!file)return;
+    try{
+      const text=await file.text();
+      const data=JSON.parse(text);
+      if(!Array.isArray(data.sessions))throw new Error('Invalid file');
+      const merge=confirm(`Found ${data.sessions.length} sessions.\n\nOK = Merge with existing\nCancel = Replace all data`);
+      if(merge){
+        const existingIds=new Set(sessions.map(s=>s.id));
+        const newSessions=data.sessions.filter(s=>!existingIds.has(s.id));
+        sessions=[...sessions,...newSessions];
+        toast(`Merged ${newSessions.length} new sessions`);
       } else {
-        // Merge: add sessions not already present by ID
-        const existingIds = new Set(sessions.map(s => s.id));
-        let added = 0;
-        for (const s of (data.sessions || [])) {
-          if (!existingIds.has(s.id)) { sessions.push(s); added++; }
-        }
-        if (data.skills) {
-          skills = { ...data.skills, ...skills }; // existing values win
-          saveSkills(skills);
-        }
-        saveSessions();
-        toast(`Merged: ${added} new session(s) added`);
+        sessions=data.sessions;
+        if(data.settings)Object.assign(settings,data.settings);
+        if(data.skills)skillsData=data.skills;
+        saveSkillsData();saveSettings();applyTheme();
+        toast('Data replaced successfully');
       }
-      if (currentView === 'dashboard') renderDashboard();
-      else if (currentView === 'history') renderHistory();
-      else if (currentView === 'settings') renderSettings();
-    } catch { toast('Could not parse file'); }
+      saveSessions();if(currentView==='history')renderHistory();else renderDashboard();
+    }catch(err){toast('Import failed: '+err.message);}
   };
-  reader.readAsText(file);
-  input.value = '';
+  input.click();
 }
 
-function download(filename, content, mime) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
+function download(filename,content,mime){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type:mime}));
+  a.download=filename;a.click();URL.revokeObjectURL(a.href);
 }
 
-// ═══════════════════════════════════════════════════════
-// PRINT LOG
-// ═══════════════════════════════════════════════════════
-function printLog() {
-  const reqs = getReqs();
-  const totals = getTotals();
-  const sorted = [...sessions].sort((a,b) => new Date(a.startTime)-new Date(b.startTime));
-  const now = new Date().toLocaleDateString([], { year:'numeric', month:'long', day:'numeric' });
-  const driver = settings.driverName || 'Student Driver';
-  const state = reqs.stateName;
-
-  const rows = sorted.map((s, i) => `
-    <tr>
-      <td>${i+1}</td>
-      <td>${fmtDate(s.startTime)}</td>
-      <td>${fmtTime(s.startTime)}</td>
-      <td>${fmtTime(s.endTime)}</td>
-      <td>${fmtDur(s.duration)}</td>
-      <td>${s.isNight ? 'Night' : 'Day'}</td>
-      <td>${s.supervisorName || ''}</td>
-      <td>${s.supervisorLic || ''}</td>
-      <td>${s.startLocation?.city || s.startLocation?.address || ''}</td>
-      <td>${s.weather ? wxEmoji(s.weather.code)+' '+(WX_DESC[s.weather.code]||'') : ''}</td>
-      <td>${(s.distance||0).toFixed(1)}</td>
-      <td>${(s.notes||'').substring(0,60)}</td>
-    </tr>`).join('');
-
-  const skillRows = SKILLS.map(sk => {
-    const level = skills[sk.id] || 0;
-    const status = level === 2 ? 'Mastered' : level === 1 ? 'Practiced' : 'Not started';
-    return `<tr><td>${sk.cat}</td><td>${sk.name}</td><td>${status}</td></tr>`;
-  }).join('');
-
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>DriveLog — ${driver}</title>
-<style>
-  body { font-family: Arial, sans-serif; font-size: 11px; color: #000; margin: 20px; }
-  h1 { font-size: 18px; margin-bottom: 4px; }
-  .meta { color: #666; margin-bottom: 16px; font-size: 11px; }
-  table { border-collapse: collapse; width: 100%; margin-bottom: 24px; }
-  th { background: #1e293b; color: #fff; padding: 5px 6px; text-align: left; font-size: 10px; }
-  td { padding: 4px 6px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
-  tr:nth-child(even) td { background: #f8fafc; }
-  .totals td { font-weight: bold; background: #dbeafe !important; }
-  h2 { font-size: 14px; margin-top: 24px; margin-bottom: 8px; }
-  .sig { margin-top: 40px; border-top: 1px solid #000; padding-top: 8px; width: 300px; font-size: 11px; }
-  @media print { body { margin: 10px; } }
-</style></head><body>
-<h1>DriveLog — ${driver}</h1>
-<div class="meta">State: ${state} &nbsp;|&nbsp; Required: ${reqs.total}h total / ${reqs.night}h night &nbsp;|&nbsp; Printed: ${now}</div>
-<div class="meta">Completed: ${totals.totalHours.toFixed(1)}h total (${totals.nightHours.toFixed(1)}h night) &nbsp;|&nbsp; ${totals.sessions} sessions &nbsp;|&nbsp; ${totals.distMi.toFixed(1)} miles</div>
-
-<h2>Session Log</h2>
-<table>
-<thead><tr>
-  <th>#</th><th>Date</th><th>Start</th><th>End</th><th>Duration</th><th>D/N</th>
-  <th>Supervisor</th><th>License #</th><th>Location</th><th>Weather</th><th>Miles</th><th>Notes</th>
-</tr></thead>
-<tbody>${rows}</tbody>
-<tfoot>
-  <tr class="totals">
-    <td colspan="4">TOTALS</td>
-    <td>${fmtDur(totals.totalHours * 60)}</td>
-    <td>${totals.nightHours.toFixed(1)}h night</td>
-    <td colspan="4"></td>
-    <td>${totals.distMi.toFixed(1)}</td>
-    <td></td>
-  </tr>
-</tfoot>
-</table>
-
-<h2>Skills Checklist</h2>
-<table>
-<thead><tr><th>Category</th><th>Skill</th><th>Status</th></tr></thead>
-<tbody>${skillRows}</tbody>
-</table>
-
-<div class="sig">Supervisor Signature: _____________________________ Date: ___________</div>
-<div class="sig" style="margin-top:20px">Parent/Guardian Signature: _____________________________ Date: ___________</div>
-<script>window.print();<\/script>
-</body></html>`;
-
-  const w = window.open('', '_blank');
-  w.document.write(html);
+function printLog(){
+  const reqs=getReqs(),totals=getTotals();
+  const rows=sessions.map(s=>`<tr>
+    <td>${fmtDate(s.startTime)}</td>
+    <td>${fmtTime(s.startTime)}</td>
+    <td>${fmtTime(s.endTime)}</td>
+    <td>${fmtDur(s.duration)}</td>
+    <td>${(s.distance||0).toFixed(1)} mi</td>
+    <td>${s.isNight?'Night':'Day'}</td>
+    <td>${s.supervisor||''}</td>
+    <td>${s.weather?s.weather.temp+'°F '+wxEmoji(s.weather.code):''}</td>
+    <td>${(s.notes||'').substring(0,40)}</td>
+  </tr>`).join('');
+  const skillRows=SKILLS.map(sk=>{const sd=skillsData[sk.id];return`<tr><td>${sk.label}</td><td>${sk.cat}</td><td>${sd?sd.status.replace('_',' '):'not started'}</td><td>${sd?.lastPracticed?fmtDate(sd.lastPracticed):''}</td></tr>`;}).join('');
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>DriveLog — ${settings.driverName||'Driver'}</title>
+  <style>body{font-family:Arial,sans-serif;font-size:11px;margin:24px}h1{font-size:18px;margin-bottom:4px}h2{font-size:13px;margin:20px 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px}table{width:100%;border-collapse:collapse;margin-bottom:16px}th{background:#f1f5f9;text-align:left;padding:5px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.5px}td{padding:5px 8px;border-bottom:1px solid #e2e8f0;font-size:11px}.sig{margin-top:32px;display:flex;gap:40px}.sig-line{flex:1;border-top:1px solid #000;padding-top:4px;font-size:10px}@media print{button{display:none}}</style>
+  </head><body>
+  <h1>DriveLog — Supervised Driving Record</h1>
+  <p><strong>Driver:</strong> ${settings.driverName||'_____________________'} &nbsp;&nbsp; <strong>State:</strong> ${reqs.stateName} &nbsp;&nbsp; <strong>Printed:</strong> ${new Date().toLocaleDateString()}</p>
+  <p><strong>Total Hours:</strong> ${totals.totalHours.toFixed(1)} / ${reqs.total} required &nbsp;&nbsp; <strong>Night Hours:</strong> ${totals.nightHours.toFixed(1)} / ${reqs.night} required</p>
+  <h2>Session Log</h2>
+  <table><thead><tr><th>Date</th><th>Start</th><th>End</th><th>Duration</th><th>Distance</th><th>Day/Night</th><th>Supervisor</th><th>Weather</th><th>Notes</th></tr></thead>
+  <tbody>${rows}</tbody></table>
+  <h2>Skills Checklist</h2>
+  <table><thead><tr><th>Skill</th><th>Category</th><th>Status</th><th>Last Practiced</th></tr></thead>
+  <tbody>${skillRows}</tbody></table>
+  <div class="sig">
+    <div class="sig-line">Driver Signature</div>
+    <div class="sig-line">Parent/Guardian Signature</div>
+    <div class="sig-line">Date</div>
+  </div>
+  <script>window.print();<\/script></body></html>`);
   w.document.close();
 }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
 // WEATHER & GEOCODING
-// ═══════════════════════════════════════════════════════
-async function fetchWeather(lat, lng) {
-  try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code,wind_speed_10m,is_day&temperature_unit=fahrenheit&wind_speed_unit=mph`;
-    const r = await fetch(url);
-    const d = await r.json();
-    const c = d.current;
-    return {
-      temp: Math.round(c.temperature_2m),
-      code: c.weather_code,
-      windSpeed: Math.round(c.wind_speed_10m),
-      isDay: c.is_day === 1
-    };
-  } catch { return null; }
+// ═══════════════════════════════════════════════════
+async function fetchWeather(lat,lng){
+  try{
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code,wind_speed_10m,is_day&temperature_unit=fahrenheit&wind_speed_unit=mph`);
+    const d=await r.json(),c=d.current;
+    return{temp:Math.round(c.temperature_2m),code:c.weather_code,windSpeed:Math.round(c.wind_speed_10m),isDay:c.is_day===1};
+  }catch{return null;}
 }
 
-async function reverseGeocode(lat, lng) {
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
-    const r = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-    const d = await r.json();
-    const city = d.address?.city || d.address?.town || d.address?.village || d.address?.county || '';
-    const state = d.address?.state || '';
-    const road = d.address?.road || '';
-    return {
-      lat, lng,
-      city: city ? `${city}, ${state}` : state,
-      address: road ? `${road}, ${city ? city + ', ' : ''}${state}` : d.display_name?.split(',').slice(0,3).join(',').trim() || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
-    };
-  } catch {
-    return { lat, lng, city: '', address: `${lat.toFixed(4)}, ${lng.toFixed(4)}` };
-  }
+async function reverseGeocode(lat,lng){
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,{headers:{'Accept-Language':'en'}});
+    const d=await r.json();
+    const city=d.address?.city||d.address?.town||d.address?.village||d.address?.county||'';
+    const state=d.address?.state||'';const road=d.address?.road||'';
+    return{lat,lng,city:city?`${city}, ${state}`:state,address:road?`${road}, ${city?city+', ':''}${state}`:d.display_name?.split(',').slice(0,3).join(',').trim()||`${lat.toFixed(4)}, ${lng.toFixed(4)}`};
+  }catch{return{lat,lng,city:'',address:`${lat.toFixed(4)}, ${lng.toFixed(4)}`};}
 }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
 // MANUAL ENTRY
-// ═══════════════════════════════════════════════════════
-function openManualModal(editId = null) {
-  editingSessionId = editId;
-  const pad = n => String(n).padStart(2,'0');
+// ═══════════════════════════════════════════════════
+let editingSessionId=null;
 
-  if (editId) {
-    const s = sessions.find(x => x.id === editId);
-    if (!s) return;
-    const start = new Date(s.startTime);
-    const end = s.endTime ? new Date(s.endTime) : null;
-    document.getElementById('manual-modal-title').textContent = 'Edit Drive';
-    document.getElementById('m-date').value = `${start.getFullYear()}-${pad(start.getMonth()+1)}-${pad(start.getDate())}`;
-    document.getElementById('m-start').value = `${pad(start.getHours())}:${pad(start.getMinutes())}`;
-    document.getElementById('m-end').value = end ? `${pad(end.getHours())}:${pad(end.getMinutes())}` : '';
-    document.getElementById('m-dur-h').value = '';
-    document.getElementById('m-dur-m').value = '';
-    document.getElementById('m-daynight').value = s.isNight ? 'night' : 'day';
-    document.getElementById('m-supervisor').value = s.supervisorName || '';
-    document.getElementById('m-supervisor-lic').value = s.supervisorLic || '';
-    document.getElementById('m-location').value = s.startLocation?.city || s.startLocation?.address || '';
-    document.getElementById('m-notes').value = s.notes || '';
+function openManualModal(editId=null){
+  editingSessionId=editId;
+  const pad=n=>String(n).padStart(2,'0');
+  document.getElementById('manual-modal-title').textContent=editId?'Edit Drive':'Add Drive Manually';
+  if(editId){
+    const s=sessions.find(x=>x.id===editId);if(!s)return;
+    const start=new Date(s.startTime);const end=s.endTime?new Date(s.endTime):null;
+    document.getElementById('m-date').value=`${start.getFullYear()}-${pad(start.getMonth()+1)}-${pad(start.getDate())}`;
+    document.getElementById('m-start').value=`${pad(start.getHours())}:${pad(start.getMinutes())}`;
+    document.getElementById('m-end').value=end?`${pad(end.getHours())}:${pad(end.getMinutes())}` :'';
+    document.getElementById('m-dur-h').value='';document.getElementById('m-dur-m').value='';
+    document.getElementById('m-daynight').value=s.isNight?'night':'day';
+    document.getElementById('m-supervisor').value=s.supervisor||'';
+    document.getElementById('m-license').value=s.supervisorLicense||'';
+    document.getElementById('m-location').value=s.startLocation?.city||s.startLocation?.address||'';
+    document.getElementById('m-notes').value=s.notes||'';
   } else {
-    const now = new Date();
-    document.getElementById('manual-modal-title').textContent = 'Add Drive Manually';
-    document.getElementById('m-date').value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
-    document.getElementById('m-start').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    document.getElementById('m-end').value = '';
-    document.getElementById('m-dur-h').value = '';
-    document.getElementById('m-dur-m').value = '';
-    document.getElementById('m-daynight').value = isNightByTime(now) ? 'night' : 'day';
-    document.getElementById('m-supervisor').value = '';
-    document.getElementById('m-supervisor-lic').value = '';
-    document.getElementById('m-location').value = '';
-    document.getElementById('m-notes').value = '';
+    const now=new Date();
+    document.getElementById('m-date').value=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+    document.getElementById('m-start').value=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    document.getElementById('m-end').value='';
+    document.getElementById('m-dur-h').value='';document.getElementById('m-dur-m').value='';
+    document.getElementById('m-daynight').value=isNightByTime(now)?'night':'day';
+    document.getElementById('m-supervisor').value='';document.getElementById('m-license').value='';
+    document.getElementById('m-location').value='';document.getElementById('m-notes').value='';
   }
-
   document.getElementById('manual-modal').classList.add('open');
 }
 
-function closeManualModal() {
-  editingSessionId = null;
-  document.getElementById('manual-modal').classList.remove('open');
-}
+function closeManualModal(){editingSessionId=null;document.getElementById('manual-modal').classList.remove('open');}
+document.getElementById('manual-modal').addEventListener('click',e=>{if(e.target===document.getElementById('manual-modal'))closeManualModal();});
 
-document.getElementById('manual-modal').addEventListener('click', e => {
-  if (e.target === document.getElementById('manual-modal')) closeManualModal();
-});
-
-function saveManualDrive() {
-  const dateVal = document.getElementById('m-date').value;
-  const startVal = document.getElementById('m-start').value;
-  const endVal = document.getElementById('m-end').value;
-  const durH = parseFloat(document.getElementById('m-dur-h').value) || 0;
-  const durM = parseFloat(document.getElementById('m-dur-m').value) || 0;
-  const isNight = document.getElementById('m-daynight').value === 'night';
-  const supervisorName = document.getElementById('m-supervisor').value.trim();
-  const supervisorLic = document.getElementById('m-supervisor-lic').value.trim();
-  const location = document.getElementById('m-location').value.trim();
-  const notes = document.getElementById('m-notes').value.trim();
-
-  if (!dateVal) { toast('Please enter a date'); return; }
-  if (!startVal && durH === 0 && durM === 0) { toast('Please enter a start time or duration'); return; }
-
-  let startTime, duration;
-
-  if (startVal) {
-    startTime = new Date(`${dateVal}T${startVal}`).toISOString();
-    if (endVal) {
-      let start = new Date(`${dateVal}T${startVal}`);
-      let end = new Date(`${dateVal}T${endVal}`);
-      if (end <= start) end.setDate(end.getDate() + 1);
-      duration = (end - start) / 60000;
-    } else if (durH > 0 || durM > 0) {
-      duration = durH * 60 + durM;
-    } else {
-      toast('Please enter an end time or duration'); return;
+function saveManualDrive(){
+  const dateVal=document.getElementById('m-date').value;
+  const startVal=document.getElementById('m-start').value;
+  const endVal=document.getElementById('m-end').value;
+  const durH=parseFloat(document.getElementById('m-dur-h').value)||0;
+  const durM=parseFloat(document.getElementById('m-dur-m').value)||0;
+  const isNight=document.getElementById('m-daynight').value==='night';
+  const supervisor=document.getElementById('m-supervisor').value.trim();
+  const supervisorLicense=document.getElementById('m-license').value.trim();
+  const location=document.getElementById('m-location').value.trim();
+  const notes=document.getElementById('m-notes').value.trim();
+  if(!dateVal){toast('Please enter a date');return;}
+  if(!startVal&&durH===0&&durM===0){toast('Enter a start time or duration');return;}
+  let startTime,duration,endTime;
+  if(startVal){
+    startTime=new Date(`${dateVal}T${startVal}`).toISOString();
+    if(endVal){
+      let start=new Date(`${dateVal}T${startVal}`),end=new Date(`${dateVal}T${endVal}`);
+      if(end<=start)end.setDate(end.getDate()+1);
+      duration=(end-start)/60000;
+    } else if(durH>0||durM>0){duration=durH*60+durM;}
+    else{toast('Enter an end time or duration');return;}
+  } else {startTime=new Date(`${dateVal}T00:00`).toISOString();duration=durH*60+durM;}
+  if(duration<=0){toast('Duration must be greater than zero');return;}
+  endTime=new Date(new Date(startTime).getTime()+duration*60000).toISOString();
+  if(editingSessionId){
+    const idx=sessions.findIndex(x=>x.id===editingSessionId);
+    if(idx!==-1){
+      const existing=sessions[idx];
+      sessions[idx]={...existing,startTime,endTime,duration,isNight,supervisor,supervisorLicense,
+        startLocation:location?{lat:existing.startLocation?.lat||null,lng:existing.startLocation?.lng||null,city:location,address:location}:existing.startLocation,
+        notes};
     }
-  } else {
-    startTime = new Date(`${dateVal}T00:00`).toISOString();
-    duration = durH * 60 + durM;
-  }
-
-  if (duration <= 0) { toast('Duration must be greater than zero'); return; }
-
-  const endTime = new Date(new Date(startTime).getTime() + duration * 60000).toISOString();
-
-  if (editingSessionId) {
-    const idx = sessions.findIndex(x => x.id === editingSessionId);
-    if (idx !== -1) {
-      const existing = sessions[idx];
-      sessions[idx] = {
-        ...existing,
-        startTime,
-        endTime,
-        duration,
-        isNight,
-        supervisorName,
-        supervisorLic,
-        startLocation: location ? { lat: existing.startLocation?.lat || null, lng: existing.startLocation?.lng || null, city: location, address: location } : existing.startLocation,
-        notes,
-      };
-    }
-    saveSessions();
-    checkMilestones();
-    closeManualModal();
     toast('Drive updated');
   } else {
-    const session = {
-      id: genId(),
-      startTime,
-      endTime,
-      duration,
-      isNight,
-      supervisorName,
-      supervisorLic,
-      startLocation: location ? { lat: null, lng: null, city: location, address: location } : null,
-      endLocation: null,
-      weather: null,
-      route: [],
-      distance: 0,
-      maxSpeedMph: 0,
-      avgSpeedMph: 0,
-      notes,
-      manual: true
-    };
-    sessions.push(session);
-    saveSessions();
-    checkMilestones();
-    closeManualModal();
+    sessions.push({id:genId(),startTime,endTime,duration,isNight,supervisor,supervisorLicense,
+      startLocation:location?{lat:null,lng:null,city:location,address:location}:null,
+      endLocation:null,weather:null,route:[],distance:0,notes,manual:true});
     toast('Drive added');
+    checkMilestones();
   }
-  if (currentView === 'history') renderHistory();
-  else if (currentView === 'dashboard') renderDashboard();
-  else if (currentView === 'drive') renderDrive();
+  saveSessions();closeManualModal();
+  if(currentView==='history')renderHistory();
+  else if(currentView==='dashboard')renderDashboard();
 }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
 // HELPERS
-// ═══════════════════════════════════════════════════════
-function haversineMeters(lat1, lng1, lat2, lng2) {
-  const R = 6371000, toRad = x => x * Math.PI / 180;
-  const dLat = toRad(lat2-lat1), dLng = toRad(lng2-lng1);
-  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+// ═══════════════════════════════════════════════════
+function haversineMeters(lat1,lng1,lat2,lng2){
+  const R=6371000,toRad=x=>x*Math.PI/180;
+  const dLat=toRad(lat2-lat1),dLng=toRad(lng2-lng1);
+  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function routeDistMiles(route){
+  let d=0;
+  for(let i=1;i<route.length;i++)d+=haversineMeters(route[i-1][0],route[i-1][1],route[i][0],route[i][1]);
+  return d/1609.344;
+}
+function elapsedMin(startTime){return(Date.now()-new Date(startTime).getTime())/60000;}
+function fmtElapsed(startTime){
+  const s=Math.floor((Date.now()-new Date(startTime).getTime())/1000);
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+  return`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+}
+function fmtDur(minutes){
+  if(!minutes)return'0m';
+  const h=Math.floor(minutes/60),m=Math.round(minutes%60);
+  if(h===0)return`${m}m`;if(m===0)return`${h}h`;return`${h}h ${m}m`;
+}
+function fmtTime(iso){if(!iso)return'—';return new Date(iso).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});}
+function fmtDate(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});}
+function isNightByTime(date){const h=date.getHours();return h<6||h>=20;}
+function vibrate(pattern){try{navigator.vibrate&&navigator.vibrate(pattern);}catch(e){}}
+
+let toastTimer=null;
+function toast(msg){
+  const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
 }
 
-function routeDistMiles(route) {
-  let d = 0;
-  for (let i = 1; i < route.length; i++) d += haversineMeters(route[i-1][0], route[i-1][1], route[i][0], route[i][1]);
-  return d / 1609.344;
+// ═══════════════════════════════════════════════════
+// ONBOARDING
+// ═══════════════════════════════════════════════════
+function initOnboarding(){
+  const sel=document.getElementById('ob-state');
+  if(sel&&!sel.options.length){
+    Object.entries(STATE_REQS).forEach(([k,v])=>{
+      const opt=document.createElement('option');opt.value=k;opt.textContent=v.name;sel.appendChild(opt);
+    });
+    sel.value='CA';
+  }
+  if(!settings.onboardingDone&&!sessions.length&&!settings.driverName){
+    document.getElementById('onboard-overlay').classList.add('open');
+  }
 }
 
-function elapsedMin(startTime) {
-  return (Date.now() - new Date(startTime).getTime()) / 60000;
+function obNext(step){
+  if(step===1){
+    const name=document.getElementById('ob-name').value.trim();
+    if(!name){toast('Please enter a name');return;}
+    settings.driverName=name;
+  } else if(step===2){
+    settings.state=document.getElementById('ob-state').value;
+  }
+  document.querySelectorAll('.onboard-step').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.onboard-dot').forEach(d=>d.classList.remove('active'));
+  document.getElementById('ob-'+(step+1)).classList.add('active');
+  document.getElementById('ob-dot-'+step).classList.add('active');
 }
 
-function fmtElapsed(startTime) {
-  const s = Math.floor((Date.now() - new Date(startTime).getTime()) / 1000);
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-  return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+function obFinish(){
+  const goalVal=document.getElementById('ob-goal').value;
+  if(goalVal)settings.goalDate=goalVal;
+  settings.onboardingDone=true;
+  saveSettings();applyTheme();
+  document.getElementById('onboard-overlay').classList.remove('open');
+  updateAvatar();renderDashboard();
 }
 
-function fmtDur(minutes) {
-  if (!minutes) return '0m';
-  const h = Math.floor(minutes / 60), m = Math.round(minutes % 60);
-  if (h === 0) return `${m}m`;
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
-}
-
-function fmtTime(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-}
-
-function fmtDate(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-}
-
-function isNightByTime(date) {
-  const h = date.getHours();
-  return h < 6 || h >= 20;
-}
-
-let toastTimer = null;
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
-}
-
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
 // INIT
-// ═══════════════════════════════════════════════════════
-applyDarkMode();
+// ═══════════════════════════════════════════════════
+applyTheme();
+updateSkillsBadge();
+initOnboarding();
 navigate('dashboard');
 </script>
 </body>
