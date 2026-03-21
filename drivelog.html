@@ -581,6 +581,8 @@ function updateAvatar(){
   const name = settings.driverName||'?';
   const initials = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   el.textContent = initials||'?';
+  el.onclick = () => navigate('settings');
+  el.title = 'Settings';
 }
 
 // ═══════════════════════════════════════════════════
@@ -963,7 +965,9 @@ function toggleTip(id){
 
 function setSkill(id,status){
   vibrate(15);
-  skillsData[id]={status,lastPracticed:new Date().toISOString()};
+  const current = skillsData[id]?.status;
+  const newStatus = current === status ? 'not_started' : status;
+  skillsData[id]={status:newStatus, lastPracticed:new Date().toISOString()};
   saveSkillsData();
   updateSkillsBadge();
   renderSkills();
