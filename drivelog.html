@@ -806,17 +806,16 @@ function updateSkillsBadge(){
 // ═══════════════════════════════════════════════════
 function checkMilestones(){
   const totals=getTotals(),reqs=getReqs();
-  const earned=new Set(JSON.parse(localStorage.getItem('dl_milestones')||'[]'));
-  let newEarned=[];
+  const prev=new Set(JSON.parse(localStorage.getItem('dl_milestones')||'[]'));
+  // Recompute from scratch so removals are reflected immediately
+  const earned=new Set();
   for(const m of MILESTONES){
-    if(!earned.has(m.id)&&m.check(totals,reqs)){
-      earned.add(m.id);newEarned.push(m);
+    if(m.check(totals,reqs)){
+      earned.add(m.id);
+      if(!prev.has(m.id))toast(m.icon+' '+m.label+' unlocked!');
     }
   }
-  if(newEarned.length){
-    localStorage.setItem('dl_milestones',JSON.stringify([...earned]));
-    newEarned.forEach(m=>toast(m.icon+' '+m.label+' unlocked!'));
-  }
+  localStorage.setItem('dl_milestones',JSON.stringify([...earned]));
   return earned;
 }
 
