@@ -1,0 +1,25 @@
+name: Deploy to metacrystal.com
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload via SFTP
+        env:
+          SFTP_PASS: ${{ secrets.SFTP_PASSWORD }}
+        run: |
+          sudo apt-get install -y sshpass > /dev/null 2>&1
+          sshpass -e sftp -o StrictHostKeyChecking=no \
+            ${{ secrets.SFTP_USER }}@metacrystal.com <<'SFTP'
+          put readytoroll.html /home/nstrupp/metacrystal.com/readytoroll.html
+          SFTP
+
+      - name: Confirm
+        run: echo "✅ readytoroll.html deployed to metacrystal.com"
