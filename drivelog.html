@@ -1049,10 +1049,7 @@ function renderHome(){
 // ═══════════════════════════════════════════════════
 function renderDashboard(){
   const el=document.getElementById('dash-content');
-  // Skeleton
-  el.innerHTML=`<div class="skeleton-card"><div class="skel" style="height:100px"></div></div>
-    <div class="skeleton-card"><div class="skel" style="height:60px"></div></div>`;
-  setTimeout(()=>{
+  {
     const reqs=getReqs(),totals=getTotals();
     const totalPct=reqs.total>0?Math.min(totals.totalHours/reqs.total,1):1;
     const nightPct=reqs.night>0?Math.min(totals.nightHours/reqs.night,1):1;
@@ -1130,7 +1127,7 @@ function renderDashboard(){
       if(circle)setTimeout(()=>{circle.style.strokeDashoffset=circle.dataset.target;},50);
     });
     el.querySelectorAll('.session-row').forEach(r=>r.addEventListener('click',()=>showSessionDetail(r.dataset.id)));
-  },200);
+  }
 }
 
 function getRecentSkills(){
