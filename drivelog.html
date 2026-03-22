@@ -407,6 +407,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 </div>
 
 <div class="toast" id="toast"></div>
+<canvas id="confetti-canvas" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9999;display:none"></canvas>
 
 <script>
 'use strict';
@@ -807,17 +808,97 @@ function updateSkillsBadge(){
 function checkMilestones(){
   const totals=getTotals(),reqs=getReqs();
   const prev=new Set(JSON.parse(localStorage.getItem('dl_milestones')||'[]'));
-  // Recompute from scratch so removals are reflected immediately
   const earned=new Set();
+  let anyNew=false;
   for(const m of MILESTONES){
     if(m.check(totals,reqs)){
       earned.add(m.id);
-      if(!prev.has(m.id))toast(m.icon+' '+m.label+' unlocked!');
+      if(!prev.has(m.id)){toast(m.icon+' '+m.label+' unlocked!');anyNew=true;}
     }
   }
+  if(anyNew)launchConfetti();
   localStorage.setItem('dl_milestones',JSON.stringify([...earned]));
   return earned;
 }
+
+// ═══════════════════════════════════════════════════
+// CONFETTI
+// ═══════════════════════════════════════════════════
+(function(){
+  const COLORS=['#2563eb','#16a34a','#d97706','#e11d48','#7c3aed','#0d9488','#f59e0b','#ec4899','#06b6d4','#84cc16'];
+  const SHAPES=['circle','rect','ribbon'];
+  let particles=[],raf=null,startTime=0;
+  const DURATION=3500; // ms
+
+  function Particle(){
+    this.x=Math.random()*window.innerWidth;
+    this.y=-10-Math.random()*40;
+    this.r=4+Math.random()*5;
+    this.color=COLORS[Math.floor(Math.random()*COLORS.length)];
+    this.shape=SHAPES[Math.floor(Math.random()*SHAPES.length)];
+    this.vx=(Math.random()-0.5)*3;
+    this.vy=3+Math.random()*4;
+    this.rot=Math.random()*Math.PI*2;
+    this.rotV=(Math.random()-0.5)*0.2;
+    this.w=this.shape==='ribbon'?2:this.r*2;
+    this.h=this.shape==='ribbon'?10+Math.random()*6:this.r*2;
+    this.opacity=1;
+  }
+
+  function draw(canvas,ctx,elapsed){
+    const progress=elapsed/DURATION;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(const p of particles){
+      p.x+=p.vx;
+      p.vy+=0.06; // gravity
+      p.y+=p.vy;
+      p.rot+=p.rotV;
+      p.vx*=0.99;
+      p.opacity=Math.max(0,1-Math.max(0,(elapsed-2000)/1500));
+      ctx.save();
+      ctx.globalAlpha=p.opacity;
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle=p.color;
+      if(p.shape==='circle'){
+        ctx.beginPath();ctx.arc(0,0,p.r,0,Math.PI*2);ctx.fill();
+      } else {
+        ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      }
+      ctx.restore();
+    }
+    particles=particles.filter(p=>p.opacity>0&&p.y<canvas.height+20);
+  }
+
+  function loop(canvas,ctx){
+    const elapsed=Date.now()-startTime;
+    draw(canvas,ctx,elapsed);
+    if(elapsed<DURATION&&particles.length>0){
+      raf=requestAnimationFrame(()=>loop(canvas,ctx));
+    } else {
+      canvas.style.display='none';
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      particles=[];
+    }
+  }
+
+  window.launchConfetti=function(){
+    const canvas=document.getElementById('confetti-canvas');
+    if(!canvas)return;
+    canvas.width=window.innerWidth;
+    canvas.height=window.innerHeight;
+    canvas.style.display='block';
+    const ctx=canvas.getContext('2d');
+    if(raf)cancelAnimationFrame(raf);
+    particles=[];
+    startTime=Date.now();
+    // Burst: 120 particles spread across three waves
+    for(let i=0;i<120;i++){
+      setTimeout(()=>particles.push(new Particle()),Math.random()*600);
+    }
+    raf=requestAnimationFrame(()=>loop(canvas,ctx));
+  };
+})();
 
 function milestonesHTML(){
   const earned=checkMilestones();
