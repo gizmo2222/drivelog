@@ -881,6 +881,15 @@ let openSkillTip = null;
   });
 })();
 
+function loadDeletedIds(){
+  try{return new Set(JSON.parse(localStorage.getItem('rtr_deleted')||'[]'));}
+  catch{return new Set();}
+}
+function saveDeletedId(id){
+  const ids=loadDeletedIds();ids.add(id);
+  localStorage.setItem('rtr_deleted',JSON.stringify([...ids]));
+}
+
 function loadSettings(){
   try{return Object.assign(defaultSettings(),JSON.parse(localStorage.getItem('rtr_settings'))||{});}
   catch{return defaultSettings();}
@@ -1114,9 +1123,10 @@ async function pullSync(){
     const r=await fetch(SYNC_URL+'?action=pull&code='+settings.syncCode);
     const d=await r.json();
     if(!d.ok)throw new Error(d.error||'Pull failed');
-    // Merge: keep all local + any remote sessions not already present
+    // Merge: keep all local + any remote sessions not already present and not deleted
     const localIds=new Set(sessions.map(s=>s.id));
-    const newSessions=d.sessions.filter(s=>!localIds.has(s.id));
+    const deletedIds=loadDeletedIds();
+    const newSessions=d.sessions.filter(s=>!localIds.has(s.id)&&!deletedIds.has(s.id));
     if(newSessions.length){
       sessions=[...sessions,...newSessions].sort((a,b)=>new Date(b.startTime)-new Date(a.startTime));
       saveSessions();checkMilestones();
@@ -2484,6 +2494,7 @@ function deleteSession(id){
   const s=sessions.find(x=>x.id===id);
   if(!s)return;
   sessions=sessions.filter(x=>x.id!==id);
+  saveDeletedId(id);
   onSessionsChanged();closeModal();
   toastUndo('Session deleted',s);
 }
@@ -2595,6 +2606,7 @@ function clearAllData(){
   sessions=[];settings=defaultSettings();skillsData={};
   saveSessions();saveSettings();saveSkillsData();
   localStorage.removeItem('rtr_milestones');
+  localStorage.removeItem('rtr_deleted');
   applyTheme();updateSkillsBadge();onSessionsChanged();toast('All data cleared');renderSettings();
 }
 
@@ -2848,6 +2860,9 @@ function toastUndo(msg,session){
 }
 function undoDelete(){
   if(!undoSession)return;
+  // Remove from deleted set so sync won't filter it out again
+  const ids=loadDeletedIds();ids.delete(undoSession.id);
+  localStorage.setItem('rtr_deleted',JSON.stringify([...ids]));
   sessions.push(undoSession);sessions.sort((a,b)=>new Date(b.startTime)-new Date(a.startTime));
   undoSession=null;
   document.getElementById('toast').classList.remove('show');
