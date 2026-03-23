@@ -899,7 +899,7 @@ function loadSettings(){
   catch{return defaultSettings();}
 }
 function defaultSettings(){
-  return{driverName:'',state:'CA',customTotal:null,customNight:null,goalDate:'',darkMode:false,accentId:'blue',fontSize:'medium',onboardingDone:false,vibeTheme:'default',carEmoji:'🚗',carNickname:'',syncCode:''};
+  return{driverName:'',state:'CA',customTotal:null,customNight:null,goalDate:'',darkMode:false,accentId:'blue',fontSize:'medium',onboardingDone:false,vibeTheme:'default',carEmoji:'🚗',carNickname:'',syncCode:'',parentToken:''};
 }
 function saveSettings(){localStorage.setItem('rtr_settings',JSON.stringify(settings));}
 
@@ -1174,13 +1174,18 @@ function updateSyncUI(){
 
 async function disconnectSync(){
   if(!confirm('Stop syncing on this device? Your sync code is preserved on the server.'))return;
-  settings.syncCode='';saveSettings();syncStatus='off';
+  settings.syncCode='';settings.parentToken='';saveSettings();syncStatus='off';
   renderSettings();toast('Sync disconnected');
 }
 
-function shareParentLink(){
+async function shareParentLink(){
   if(!settings.syncCode){toast('Enable sync first');return;}
-  const url=location.href.split('?')[0]+'?parent='+settings.syncCode;
+  // Ensure a parent token exists; create one if not
+  if(!settings.parentToken){
+    const ok=await createParentToken();
+    if(!ok)return;
+  }
+  const url=location.href.split('?')[0]+'?parent='+settings.parentToken;
   if(navigator.share){
     navigator.share({title:"ReadyToRoll — "+settings.driverName+"'s progress",text:'Follow my driving progress!',url}).catch(()=>{});
   } else if(navigator.clipboard){
@@ -1188,6 +1193,24 @@ function shareParentLink(){
   } else {
     toast(url);
   }
+}
+
+async function createParentToken(){
+  try{
+    const r=await fetch(SYNC_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'create_parent_token',code:settings.syncCode})});
+    const d=await r.json();
+    if(!d.ok)throw new Error(d.error||'Failed');
+    settings.parentToken=d.parentToken;
+    saveSettings();
+    return true;
+  }catch(e){toast('Could not create parent link: '+e.message);return false;}
+}
+
+async function revokeParentToken(){
+  if(!confirm('Revoke current parent link? Anyone using the old link will lose access.'))return;
+  const ok=await createParentToken(); // replaces token on server, saves new one
+  if(ok){renderSettings();toast('Parent link revoked and regenerated');}
 }
 
 function syncCodeHTML(){
@@ -1208,7 +1231,14 @@ function syncCodeHTML(){
       <button class="btn-outline" onclick="pullSync()">↓ Pull Updates</button>
       <button class="btn-outline" onclick="pushSync()">↑ Push Now</button>
     </div>
-    <button class="btn-outline" style="width:100%;margin-bottom:8px" onclick="shareParentLink()">📤 Share Parent View Link</button>
+    <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px">
+      <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px">Parent View Link</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px;line-height:1.4">${settings.parentToken?'Share this link with a parent or supervisor. It gives read-only access and is separate from your sync code.':'No parent link created yet.'}</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-outline" style="flex:1;font-size:.8rem" onclick="shareParentLink()">📤 ${settings.parentToken?'Share Link':'Create & Share'}</button>
+        ${settings.parentToken?`<button class="btn-outline" style="flex:0 0 auto;font-size:.8rem;color:var(--muted)" onclick="revokeParentToken()">🔄 Revoke</button>`:''}
+      </div>
+    </div>
     <button class="btn-outline" style="width:100%;color:var(--muted)" onclick="disconnectSync()">Disconnect Sync</button>`;
   } else {
     return`<p style="font-size:.8rem;color:var(--muted);margin-bottom:12px;line-height:1.5">Create a sync code to back up your drives to the cloud and share a read-only progress view with a parent or supervisor.</p>
@@ -1337,7 +1367,7 @@ async function initParentView(code){
   overlay.classList.add('show');
   const contentEl=document.getElementById('parent-content');
   try{
-    const r=await fetch(SYNC_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pull',code})});
+    const r=await fetch(SYNC_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'parent_pull',parentToken:code})});
     const d=await r.json();
     if(!d.ok)throw new Error(d.error||'Not found');
     const remoteSessions=d.sessions||[];
@@ -2998,11 +3028,16 @@ if('serviceWorker' in navigator){
 (function(){
   const params=new URLSearchParams(location.search);
   const parentCode=params.get('parent');
-  if(parentCode&&/^[A-Z0-9]{8}$/i.test(parentCode)){
-    // Show parent view immediately; hide normal app
+  // Parent tokens are 32-char lowercase hex (128-bit random)
+  if(parentCode&&/^[0-9a-f]{32}$/i.test(parentCode)){
     applyTheme();
-    initParentView(parentCode.toUpperCase());
+    initParentView(parentCode.toLowerCase());
     return; // skip normal init
+  }
+  if(parentCode){
+    // Something is in ?parent= but it's not a valid token
+    document.body.innerHTML='<div style="padding:40px;text-align:center;font-family:sans-serif"><p>This parent link is invalid or has expired.</p><a href="'+location.pathname+'">Open app</a></div>';
+    return;
   }
 
   // ── PWA: Handle home screen shortcut (#drive) ──
