@@ -377,7 +377,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
   <div id="dashboard-view" class="view padded"><div id="dash-content"></div></div>
   <div id="drive-view" class="view">
     <div id="drive-map"></div>
-    <div id="compass" id="compass-el">
+    <div id="compass-el">
       <svg viewBox="0 0 24 24" fill="none"><polygon points="12,2 15,11 12,9 9,11" fill="#dc2626"/><polygon points="12,22 9,13 12,15 15,13" fill="#94a3b8"/></svg>
     </div>
     <div id="drive-panel"></div>
@@ -444,12 +444,14 @@ body{display:flex;flex-direction:column;overflow:hidden}
         <b>📝 Manual</b> — enter a past drive by date, start/end time, and conditions. Use this for drives you forgot to log, or when GPS isn't available.<br><br>
         <b>Tags</b> — tap tag chips (Highway, Rain, Parking…) before saving to categorise each drive.<br><br>
         <b>Day vs Night</b> — detected automatically. You can override it in Quick Add or Manual entry.<br><br>
-        <b>📍 Location blocked</b> — if you see a yellow Location banner, open your browser settings → Site permissions → Location and allow this site. Routes and weather require GPS access.
+        <b>📍 Location blocked</b> — if you see a yellow Location banner, open your browser settings → Site permissions → Location and allow this site. Routes and weather require GPS access.<br><br>
+        <b>Idle detection</b> — if the app detects no movement for 5 minutes while a drive is active, you'll get a warning. At 10 minutes it automatically stops the drive so you don't accidentally log parked time.
       </div>
 
       <div class="section-title">Progress Tab</div>
       <div class="card" style="font-size:.84rem;line-height:1.6">
-        The ring shows your overall % complete. The bars below break out night and day hours separately.<br><br>
+        The ring shows your overall % complete. The bars below break out day, night, and (for PA and SD) inclement hours separately.<br><br>
+        <b>🌧️ Inclement hours</b> — some states require supervised driving in rain, snow, fog, or thunderstorms. ReadyToRoll detects inclement conditions automatically from live weather data, or you can tag a drive manually with Rain or Snow. Pennsylvania requires 5h; South Dakota requires 10h.<br><br>
         <b>Goal Date</b> — set a target test date in Settings. ReadyToRoll will show how many hours per week you need to stay on track.<br><br>
         <b>Milestones</b> — 17 badges unlock automatically: progress thresholds, session counts, miles, streaks, and driving conditions (Rain Dancer 🌧️, Night Owl 🦉, Early Bird 🌅, Highway Star 🛣️, and more). Confetti fires when a new one is earned.<br><br>
         <b>Weekly Chart</b> — shows the last 8 weeks of activity, split by day (amber) and night (purple).
@@ -623,6 +625,8 @@ body{display:flex;flex-direction:column;overflow:hidden}
         <div class="qa-chip" data-tag="rain" onclick="this.classList.toggle('active')">🌧️ Rain</div>
         <div class="qa-chip" data-tag="snow" onclick="this.classList.toggle('active')">❄️ Snow</div>
         <div class="qa-chip" data-tag="parking" onclick="this.classList.toggle('active')">🅿️ Parking</div>
+        <div class="qa-chip" data-tag="confident" onclick="this.classList.toggle('active')">💪 Confident</div>
+        <div class="qa-chip" data-tag="challenging" onclick="this.classList.toggle('active')">😰 Tough</div>
       </div>
     </div>
     <div class="modal-actions">
@@ -2065,7 +2069,7 @@ async function startDrive(){
     speedSamples:[],notes:'',supervisor:'',supervisorLicense:''
   };
   document.getElementById('live-badge').style.display='inline-block';
-  document.querySelector('.drive-btn').classList.add('recording');
+  document.querySelector('.drive-btn')?.classList.add('recording');
   // Wake lock
   try{if(navigator.wakeLock)wakeLock=await navigator.wakeLock.request('screen');}catch(e){}
   navigate('drive');
@@ -2186,7 +2190,7 @@ async function stopDrive(){
   sessions.push({...activeSession});
   activeSession=null;
   document.getElementById('live-badge').style.display='none';
-  document.querySelector('.drive-btn').classList.remove('recording');
+  document.querySelector('.drive-btn')?.classList.remove('recording');
   const compass=document.getElementById('compass-el');
   if(compass)compass.classList.remove('visible');
   if(driveMap){driveMap.remove();driveMap=null;drivePolyline=null;drivePosMarker=null;}
