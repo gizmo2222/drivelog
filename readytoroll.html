@@ -137,8 +137,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 #compass-el.visible{display:flex}
 #compass-el svg{width:28px;height:28px}
 /* Car map marker */
-.car-map-marker{font-size:26px;line-height:1;filter:drop-shadow(0 1px 4px rgba(0,0,0,.45));animation:car-bob .9s ease-in-out infinite alternate}
-@keyframes car-bob{from{transform:translateY(0)}to{transform:translateY(-2px)}}
+.car-map-marker{font-size:26px;line-height:1;filter:drop-shadow(0 1px 4px rgba(0,0,0,.45))}
 
 /* ── 8. Skills view ── */
 .skill-category-header{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:14px 0 6px;border-bottom:1px solid var(--border);margin-bottom:4px}
@@ -1115,7 +1114,7 @@ async function connectSyncCode(code){
 }
 
 async function pushSync(){
-  if(!settings.syncCode)return;
+  if(!settings.syncCode||!navigator.onLine)return;
   syncStatus='busy';updateSyncUI();
   try{
     const r=await fetch(SYNC_URL+'?action=push&code='+settings.syncCode,{
@@ -1133,7 +1132,7 @@ async function pushSync(){
 }
 
 async function pullSync(){
-  if(!settings.syncCode)return;
+  if(!settings.syncCode||!navigator.onLine)return;
   syncStatus='busy';updateSyncUI();
   try{
     const r=await fetch(SYNC_URL+'?action=pull&code='+settings.syncCode);
@@ -2080,16 +2079,12 @@ async function startDrive(){
   // Wake lock
   try{if(navigator.wakeLock)wakeLock=await navigator.wakeLock.request('screen');}catch(e){}
   navigate('drive');
+  let _driveTick=0;
   driveTimerInterval=setInterval(()=>{
+    if(!activeSession){clearInterval(driveTimerInterval);driveTimerInterval=null;return;}
     const el=document.getElementById('drive-timer');
     if(el)el.textContent=fmtElapsed(activeSession.startTime);
-    checkStopDetection();
-  },30000); // check idle every 30s
-  // Also tick the display every second separately
-  const displayTick=setInterval(()=>{
-    const el=document.getElementById('drive-timer');
-    if(el)el.textContent=fmtElapsed(activeSession.startTime);
-    else clearInterval(displayTick);
+    if(++_driveTick%30===0)checkStopDetection(); // idle check every 30s
   },1000);
   if(navigator.geolocation){
     gpsWatchId=navigator.geolocation.watchPosition(
@@ -2119,7 +2114,7 @@ async function handleFirstFix(pos){
   }
   if(currentView==='drive')renderDrivePanel();
   updateCompass(heading);
-  gpsWatchId=navigator.geolocation.watchPosition(onPosition,err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
+  gpsWatchId=navigator.geolocation.watchPosition(onPosition,err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:5000,timeout:10000});
 }
 
 function onPosition(pos){
@@ -2147,10 +2142,13 @@ function onPosition(pos){
   activeSession.lastMovedAt=Date.now();
   const milesEl=document.getElementById('drive-miles');
   if(milesEl)milesEl.textContent=routeDistMiles(route).toFixed(2);
-  if(drivePolyline)drivePolyline.setLatLngs(route.map(p=>[p[0],p[1]]));
+  // Append to polyline instead of rebuilding entire array
+  if(drivePolyline){const ll=drivePolyline.getLatLngs();ll.push(L.latLng(lat,lng));drivePolyline.setLatLngs(ll);}
   if(driveMap){
     setPulseMarker(lat,lng);
-    driveMap.panTo([lat,lng],{animate:true,duration:0.5});
+    // Animate pan every 5th point; otherwise just re-centre silently
+    const animated=(route.length%5===0);
+    driveMap.panTo([lat,lng],{animate:animated,duration:0.4});
   }
   updateCompass(heading);
   checkStopDetection();
