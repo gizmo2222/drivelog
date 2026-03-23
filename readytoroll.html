@@ -1004,8 +1004,8 @@ function getTotals(){
     if(s.maxSpeed)maxSpeed=Math.max(maxSpeed,s.maxSpeed);
     if(s.avgSpeed){totalSpeed+=s.avgSpeed;speedCount++;}
     const wx=s.weather?.code;
-    const hasRain=(wx!=null&&((wx>=61&&wx<=65)||(wx>=80&&wx<=82)))||(s.tags&&s.tags.includes('rain'));
-    const hasSnow=(wx!=null&&wx>=71&&wx<=77)||(s.tags&&s.tags.includes('snow'));
+    const hasRain=(wx!=null&&((wx>=51&&wx<=65)||(wx>=80&&wx<=82)))||(s.tags&&s.tags.includes('rain'));
+    const hasSnow=(wx!=null&&((wx>=71&&wx<=77)||(wx>=85&&wx<=86)))||(s.tags&&s.tags.includes('snow'));
     if(hasRain)rainDrives++;
     if(hasSnow)snowDrives++;
     if(s.startTime&&new Date(s.startTime).getHours()<7)earlyDrives++;
@@ -1308,8 +1308,8 @@ function computeEarnedMilestones(remoteSessions,reqs){
     if(s.isNight)nightMin+=s.duration||0;
     distMi+=s.distance||0;
     const wx=s.weather?.code;
-    if((wx!=null&&((wx>=61&&wx<=65)||(wx>=80&&wx<=82)))||(s.tags&&s.tags.includes('rain')))rainDrives++;
-    if((wx!=null&&wx>=71&&wx<=77)||(s.tags&&s.tags.includes('snow')))snowDrives++;
+    if((wx!=null&&((wx>=51&&wx<=65)||(wx>=80&&wx<=82)))||(s.tags&&s.tags.includes('rain')))rainDrives++;
+    if((wx!=null&&((wx>=71&&wx<=77)||(wx>=85&&wx<=86)))||(s.tags&&s.tags.includes('snow')))snowDrives++;
     if(s.startTime&&new Date(s.startTime).getHours()<7)earlyDrives++;
     if(s.tags&&s.tags.includes('highway'))highwayDrives++;
   }
@@ -2072,7 +2072,8 @@ async function startDrive(){
     duration:0,isNight:isNightByTime(new Date()),
     startLocation:null,endLocation:null,weather:null,
     route:[],distance:0,lastSpeed:null,maxSpeed:null,avgSpeed:null,
-    speedSamples:[],notes:'',supervisor:'',supervisorLicense:''
+    speedSamples:[],notes:'',supervisor:'',supervisorLicense:'',
+    lastMovedAt:Date.now()
   };
   document.getElementById('live-badge').style.display='inline-block';
   document.querySelector('.drive-btn')?.classList.add('recording');
@@ -2089,7 +2090,11 @@ async function startDrive(){
   if(navigator.geolocation){
     gpsWatchId=navigator.geolocation.watchPosition(
       pos=>handleFirstFix(pos),
-      err=>console.warn('GPS:',err.message),
+      err=>{
+        console.warn('GPS:',err.message);
+        const msg=err.code===1?'Location access denied — route won\'t be recorded.':'GPS unavailable — route won\'t be recorded.';
+        toast(msg,4000);
+      },
       {enableHighAccuracy:true,maximumAge:5000,timeout:15000}
     );
   }
@@ -2114,7 +2119,7 @@ async function handleFirstFix(pos){
   }
   if(currentView==='drive')renderDrivePanel();
   updateCompass(heading);
-  gpsWatchId=navigator.geolocation.watchPosition(onPosition,err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:5000,timeout:10000});
+  gpsWatchId=navigator.geolocation.watchPosition(onPosition,err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
 }
 
 function onPosition(pos){
@@ -2690,9 +2695,10 @@ function exportCSV(){
       s.maxSpeed?s.maxSpeed.toFixed(0):'',s.avgSpeed?s.avgSpeed.toFixed(0):'',
       s.weather?(WX_DESC[s.weather.code]||''):'',s.weather?s.weather.temp:'',s.weather?s.weather.windSpeed:'',
       s.supervisor||'',s.startLocation?.address||'',s.endLocation?.address||'',
-      (s.notes||'').replace(/,/g,'；').replace(/\n/g,' ')]);
+      (s.notes||'').replace(/\n/g,' ')]);
   }
-  download('ReadyToRoll.csv',rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n'),'text/csv');
+  const csvEscape=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  download('ReadyToRoll.csv',rows.map(r=>r.map(csvEscape).join(',')).join('\n'),'text/csv');
 }
 
 function importData(){
