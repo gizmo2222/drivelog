@@ -112,7 +112,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
 /* ── 7. Drive view ── */
 #drive-view{flex-direction:column}
-#drive-map{flex:1;min-height:0;max-height:240px;z-index:0}
+#drive-map{flex:1;min-height:160px;z-index:0;position:relative}
 #drive-panel{background:var(--card);border-top:1px solid var(--border);padding:10px 16px 12px;flex-shrink:0;z-index:10}
 #drive-pre{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:40px 20px;text-align:center}
 #drive-pre h2{font-size:1.4rem;font-weight:800;margin-bottom:8px}
@@ -121,13 +121,13 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .btn-start{background:var(--green);color:#fff}
 .btn-stop{background:var(--red);color:#fff}
 .btn-big:active{opacity:.85}
-.speedometer{text-align:center;margin-bottom:6px}
-.speedometer .speed-val{font-size:2.6rem;font-weight:900;line-height:1;color:var(--accent)}
-.speedometer .speed-unit{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-top:1px}
-.drive-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+.speedometer{text-align:center;margin-bottom:8px}
+.speedometer .speed-val{font-size:3rem;font-weight:900;line-height:1;color:var(--accent)}
+.speedometer .speed-unit{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-top:2px}
+.drive-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
 .ds-box{text-align:center}
-.ds-box .dv{font-size:1rem;font-weight:800}
-.ds-box .dl{font-size:.58rem;text-transform:uppercase;color:var(--muted);letter-spacing:.4px}
+.ds-box .dv{font-size:1.35rem;font-weight:800}
+.ds-box .dl{font-size:.65rem;text-transform:uppercase;color:var(--muted);letter-spacing:.4px}
 .drive-meta{display:flex;gap:6px;align-items:center;font-size:.75rem;color:var(--muted);margin-bottom:8px;flex-wrap:wrap}
 .badge{display:inline-flex;align-items:center;gap:3px;background:var(--accent-lt);color:var(--accent);font-size:.62rem;font-weight:700;padding:3px 8px;border-radius:99px;flex-shrink:0}
 .badge.night{background:var(--purple-lt);color:var(--purple)}
@@ -376,9 +376,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
   <div id="home-view" class="view padded"><div id="home-content"></div></div>
   <div id="dashboard-view" class="view padded"><div id="dash-content"></div></div>
   <div id="drive-view" class="view">
-    <div id="drive-map"></div>
-    <div id="compass-el">
-      <svg viewBox="0 0 24 24" fill="none"><polygon points="12,2 15,11 12,9 9,11" fill="#dc2626"/><polygon points="12,22 9,13 12,15 15,13" fill="#94a3b8"/></svg>
+    <div id="drive-map">
+      <div id="compass-el">
+        <svg viewBox="0 0 24 24" fill="none"><polygon points="12,2 15,11 12,9 9,11" fill="#dc2626"/><polygon points="12,22 9,13 12,15 15,13" fill="#94a3b8"/></svg>
+      </div>
     </div>
     <div id="drive-panel"></div>
   </div>
@@ -2029,8 +2030,9 @@ function initDriveMap(){
   } else {
     driveMap.setView([39.5,-98.35],5);
   }
-  // Leaflet reads container size at init; flex layout may not have settled yet
-  setTimeout(()=>{ if(driveMap) driveMap.invalidateSize(); }, 150);
+  // Leaflet reads container size at init; wait for two animation frames so
+  // the browser has finished the flex layout pass before invalidating
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(driveMap) driveMap.invalidateSize(); }));
 }
 
 function setPulseMarker(lat,lng){

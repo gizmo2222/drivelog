@@ -1,7 +1,7 @@
 // ReadyToRoll Service Worker — offline cache + background support
 'use strict';
 
-const CACHE = 'rtr-v2';
+const CACHE = 'rtr-v3';
 const STATIC = [
   './readytoroll.html',
   './manifest.json',
