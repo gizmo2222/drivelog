@@ -2054,8 +2054,8 @@ function renderDrivePanel(){
     </div>
     <div class="drive-stats">
       <div class="ds-box"><div class="dv" id="drive-timer">${fmtElapsed(s.startTime)}</div><div class="dl">Time</div></div>
-      <div class="ds-box"><div class="dv">${dist.toFixed(2)}</div><div class="dl">Miles</div></div>
-      <div class="ds-box"><div class="dv">${s.maxSpeed?''+s.maxSpeed.toFixed(0):'—'}</div><div class="dl">Top MPH</div></div>
+      <div class="ds-box"><div class="dv" id="drive-miles">${dist.toFixed(2)}</div><div class="dl">Miles</div></div>
+      <div class="ds-box"><div class="dv" id="drive-topspeed">${s.maxSpeed?s.maxSpeed.toFixed(0):'—'}</div><div class="dl">Top MPH</div></div>
     </div>
     <div class="drive-meta">
       <span class="badge ${s.isNight?'night':'day'}">${s.isNight?'🌙 Night':'☀️ Day'}</span>
@@ -2129,9 +2129,11 @@ function onPosition(pos){
     const mph=speed*2.23694;
     activeSession.speedSamples=activeSession.speedSamples||[];
     activeSession.speedSamples.push(mph);
-    if(mph>activeSession.maxSpeed)activeSession.maxSpeed=mph;
+    if(mph>(activeSession.maxSpeed||0))activeSession.maxSpeed=mph;
     const speedEl=document.getElementById('speed-display');
     if(speedEl)speedEl.textContent=mph.toFixed(0);
+    const topEl=document.getElementById('drive-topspeed');
+    if(topEl)topEl.textContent=activeSession.maxSpeed.toFixed(0);
   }
   const route=activeSession.route;
   if(route.length>0){
@@ -2141,6 +2143,8 @@ function onPosition(pos){
   }
   route.push([lat,lng,altitude]);
   activeSession.lastMovedAt=Date.now();
+  const milesEl=document.getElementById('drive-miles');
+  if(milesEl)milesEl.textContent=routeDistMiles(route).toFixed(2);
   if(drivePolyline)drivePolyline.setLatLngs(route.map(p=>[p[0],p[1]]));
   if(driveMap){
     setPulseMarker(lat,lng);
