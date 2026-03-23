@@ -112,7 +112,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
 /* ── 7. Drive view ── */
 #drive-view{flex-direction:column}
-#drive-map{flex:1;min-height:0;z-index:0}
+#drive-map{flex:1;min-height:0;max-height:240px;z-index:0}
 #drive-panel{background:var(--card);border-top:1px solid var(--border);padding:10px 16px 12px;flex-shrink:0;z-index:10}
 #drive-pre{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:40px 20px;text-align:center}
 #drive-pre h2{font-size:1.4rem;font-weight:800;margin-bottom:8px}
@@ -133,9 +133,9 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .badge.night{background:var(--purple-lt);color:var(--purple)}
 .badge.day{background:var(--amber-lt);color:var(--amber)}
 /* Compass overlay */
-#compass{position:absolute;top:12px;right:12px;z-index:500;width:44px;height:44px;background:var(--card);border-radius:50%;box-shadow:var(--shadow);display:none;align-items:center;justify-content:center;transition:transform .3s}
-#compass.visible{display:flex}
-#compass svg{width:28px;height:28px}
+#compass-el{position:absolute;top:12px;right:12px;z-index:500;width:44px;height:44px;background:var(--card);border-radius:50%;box-shadow:var(--shadow);display:none;align-items:center;justify-content:center;transition:transform .3s}
+#compass-el.visible{display:flex}
+#compass-el svg{width:28px;height:28px}
 /* Pulse marker */
 .pulse-marker-container{position:relative}
 .pulse-dot{width:14px;height:14px;background:var(--accent);border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 0 rgba(37,99,235,.5);animation:pulse-map 1.6s infinite}
