@@ -167,7 +167,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .skill-row:last-child{border-bottom:none}
 .skill-label{flex:1;font-size:.88rem;font-weight:500}
 .skill-btns{display:flex;gap:6px;flex-shrink:0}
-.skill-btn{border:1.5px solid var(--border);background:var(--card);border-radius:8px;padding:5px 10px;font-size:.7rem;font-weight:600;cursor:pointer;color:var(--muted);transition:all .15s}
+.skill-btn{border:1.5px solid var(--border);background:var(--card);border-radius:8px;padding:7px 10px;font-size:.7rem;font-weight:600;cursor:pointer;color:var(--muted);transition:border-color .15s,color .15s,background-color .15s}
 .skill-btn.in_progress{background:var(--amber-lt);border-color:var(--amber);color:var(--amber)}
 .skill-btn.mastered{background:var(--green-lt);border-color:var(--green);color:var(--green)}
 .skill-tips{width:100%;background:var(--bg);border-radius:10px;padding:10px 12px;margin-top:4px;display:none}
@@ -185,7 +185,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .history-search:focus{border-color:var(--accent)}
 .history-sort{border:1.5px solid var(--border);background:var(--card);border-radius:10px;padding:9px 10px;font-size:.8rem;color:var(--text);cursor:pointer}
 .filter-bar{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px}
-.filter-chip{border:1px solid var(--border);background:var(--card);border-radius:99px;padding:5px 13px;font-size:.73rem;cursor:pointer;white-space:nowrap;flex-shrink:0;font-weight:500;color:var(--text)}
+.filter-chip{border:1px solid var(--border);background:var(--card);border-radius:99px;padding:7px 13px;font-size:.73rem;cursor:pointer;white-space:nowrap;flex-shrink:0;font-weight:500;color:var(--text);transition:border-color .15s,color .15s,background-color .15s}
 .filter-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .month-header{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0 6px;display:flex;align-items:center;justify-content:space-between}
 .month-header-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)}
@@ -219,7 +219,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .color-swatch{width:36px;height:36px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:border-color .15s}
 .color-swatch.active{border-color:var(--text)}
 .font-size-btns{display:flex;gap:8px}
-.font-size-btn{flex:1;border:1.5px solid var(--border);background:var(--card);border-radius:10px;padding:10px;text-align:center;cursor:pointer;font-weight:600;color:var(--muted)}
+.font-size-btn{flex:1;border:1.5px solid var(--border);background:var(--card);border-radius:10px;padding:10px;text-align:center;cursor:pointer;font-weight:600;color:var(--muted);font-family:inherit;transition:border-color .15s,color .15s,background-color .15s}
 .font-size-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-lt)}
 
 /* ── 11. Bottom sheet modals ── */
@@ -230,7 +230,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .sheet-handle{width:40px;height:4px;background:var(--border);border-radius:99px;margin:10px auto 0}
 .modal-header{padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
 .modal-header h3{font-size:.98rem;font-weight:700}
-.close-btn{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);padding:4px;line-height:1}
+.close-btn{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);padding:4px;line-height:1;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center}
 #detail-map{height:200px}
 .modal-body{padding:16px}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -280,7 +280,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
 /* ── 16. Tags ── */
 .tag-chips{display:flex;flex-wrap:wrap;gap:6px}
-.tag-chip{border:1.5px solid var(--border);border-radius:99px;padding:5px 11px;font-size:.75rem;cursor:pointer;user-select:none;transition:all .15s;background:var(--card);color:var(--text)}
+.tag-chip{border:1.5px solid var(--border);border-radius:99px;padding:7px 11px;font-size:.75rem;cursor:pointer;user-select:none;transition:border-color .15s,color .15s,background-color .15s;background:var(--card);color:var(--text)}
 .tag-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .session-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
 .session-tag{font-size:.65rem;background:var(--accent-lt);color:var(--accent);border-radius:99px;padding:2px 8px;font-weight:600}
@@ -294,7 +294,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .leaflet-control-attribution{font-size:9px!important}
 [data-theme="dark"] .leaflet-container,[data-theme="midnight"] .leaflet-container,[data-theme="neon"] .leaflet-container,[data-theme="contrast"] .leaflet-container{background:#1e293b}
 @media(max-width:380px){.drive-stats{grid-template-columns:1fr 1fr}.stat-grid{grid-template-columns:1fr 1fr 1fr}}
-@media print{#header,#nav,#modal,#manual-modal,#onboard-overlay{display:none!important}.view{display:block!important;position:static!important;overflow:visible!important}#main{overflow:visible!important;position:static!important}}
+@media print{#header,#nav,#modal,#manual-modal,#help-modal,#quick-modal,#onboard-overlay{display:none!important}.view{display:block!important;position:static!important;overflow:visible!important}#main{overflow:visible!important;position:static!important}}
 /* ── 18. Vibe Themes ── */
 [data-theme="pastel"]{--bg:#fdf4ff;--card:#fff0fd;--text:#3b0764;--muted:#9333ea;--border:#e9d5ff;--shadow:0 1px 4px rgba(88,28,135,.08),0 4px 16px rgba(88,28,135,.06);}
 [data-theme="neon"]{--bg:#020617;--card:#0f172a;--text:#f0f9ff;--muted:#38bdf8;--border:#1e3a5f;--shadow:0 0 0 1px rgba(56,189,248,.12),0 4px 24px rgba(0,255,136,.06);--blue-lt:rgba(0,255,136,.14);--green-lt:rgba(0,255,136,.14);--purple-lt:rgba(56,189,248,.14);--amber-lt:rgba(251,191,36,.14);--accent-lt:rgba(0,255,136,.14);--red-lt:rgba(239,68,68,.18);}
@@ -383,6 +383,27 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .ps-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
 .ps-info{flex:1;min-width:0}.ps-title{font-size:.84rem;font-weight:600}
 .ps-meta{font-size:.7rem;color:var(--muted);margin-top:1px}.ps-dur{font-size:.82rem;font-weight:700;color:var(--accent);flex-shrink:0}
+
+/* ── 25. Hover & active interaction states ── */
+@media(hover:hover){
+  .btn-big:hover{opacity:.9}
+  .btn-save:hover,.btn-save-notes:hover{filter:brightness(1.1)}
+  .btn-del:hover{background:var(--red);color:#fff}
+  .start-fab:hover{filter:brightness(1.1)}
+  .suggest-btn:hover{background:var(--accent);color:#fff}
+  .filter-chip:hover:not(.active){border-color:var(--accent);color:var(--accent)}
+  .skill-btn:hover:not(.in_progress):not(.mastered){border-color:var(--accent);color:var(--accent)}
+  .qa-chip:hover:not(.active){border-color:var(--accent);color:var(--accent)}
+  .tag-chip:hover:not(.active){border-color:var(--accent);color:var(--accent)}
+  .replay-btn:hover{background:var(--accent);color:#fff}
+  .milestone-badge:not(.earned):hover{opacity:.55}
+  .car-option:hover:not(.active){border-color:var(--accent)}
+  .theme-swatch:hover .theme-swatch-circle{border-color:var(--muted)}
+  .font-size-btn:hover:not(.active){border-color:var(--accent);color:var(--accent)}
+  .nav-btn:hover:not(.active){color:var(--text)}
+  .close-btn:hover{color:var(--text)}
+  .btn-danger:hover{background:var(--red);color:#fff}
+}
   </style>
 </head>
 <body>
@@ -495,11 +516,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
       <div class="section-title">Settings</div>
       <div class="card" style="font-size:.84rem;line-height:1.6">
         <b>State</b> — changes the hour requirement. Tap <b>📖 Driver's Handbook</b> to open your state's official manual. Override totals if your situation differs.<br><br>
-        <b>Dark mode</b> — toggle under Appearance.<br><br>
-        <b>Vibe Theme</b> — Classic, Pastel 🌸, Neon ⚡, Retro ☀️, or Midnight 🌙. Changes the whole colour palette.<br><br>
-        <b>Accent colour</b> — 6 colour options for the main highlight colour.<br><br>
-        <b>Text size</b> — Small / Medium / Large.<br><br>
-        <b>Your Car</b> — pick a car icon and give it a nickname. It shows on the Home screen.
+        <b>Vibe Theme</b> — Classic, Pastel 🌸, Neon ⚡, Retro ☀️, Midnight 🌙, Dark 🌑, or Hi-Contrast ◑. Changes the whole color palette. Dark and Hi-Contrast are great for night driving.<br><br>
+        <b>Accent Color</b> — drag the hue slider to choose any color.<br><br>
+        <b>Text Size</b> — Small / Medium / Large.<br><br>
+        <b>Your Car</b> — pick a car icon, color, and nickname. It shows on the Home screen and on the map during a live drive.
       </div>
 
       <div class="section-title">Cloud Sync & Parent View</div>
@@ -2665,8 +2685,8 @@ document.getElementById('modal').addEventListener('click',e=>{if(e.target===docu
 function renderSettings(){
   const reqs=getReqs();
   const stateOptions=Object.entries(STATE_REQS).map(([k,v])=>`<option value="${k}" ${k===settings.state?'selected':''}>${v.name}</option>`).join('');
-  const themeSwatches=VIBE_THEMES.map(t=>`<div class="theme-swatch ${t.id===(settings.vibeTheme||'default')?'active':''}" onclick="setVibeTheme('${t.id}')"><div class="theme-swatch-circle" style="background:${t.bg}">${t.emoji}</div><div class="theme-swatch-label">${t.label}</div></div>`).join('');
-  const carPicker=CAR_EMOJIS.map(e=>`<div class="car-option ${e===settings.carEmoji?'active':''}" data-e="${e}" onclick="setCarEmoji(this.dataset.e)">${e}</div>`).join('');
+  const themeSwatches=VIBE_THEMES.map(t=>`<div class="theme-swatch ${t.id===(settings.vibeTheme||'default')?'active':''}" onclick="setVibeTheme('${t.id}')" tabindex="0" role="radio" aria-checked="${t.id===(settings.vibeTheme||'default')}" aria-label="${t.label} theme" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();setVibeTheme('${t.id}')}"><div class="theme-swatch-circle" style="background:${t.bg}">${t.emoji}</div><div class="theme-swatch-label">${t.label}</div></div>`).join('');
+  const carPicker=CAR_EMOJIS.map(e=>`<div class="car-option ${e===settings.carEmoji?'active':''}" data-e="${e}" onclick="setCarEmoji(this.dataset.e)" tabindex="0" role="radio" aria-checked="${e===settings.carEmoji}" aria-label="${e} car" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();setCarEmoji(this.dataset.e)}">${e}</div>`).join('');
   document.getElementById('settings-content').innerHTML=`
     <div class="card">
       <div class="form-group"><label for="s-name">Driver Name</label><input id="s-name" type="text" value="${settings.driverName}" placeholder="e.g. Alex" onchange="saveSettingsForm()" onblur="saveSettingsForm()"></div>
@@ -2702,9 +2722,9 @@ function renderSettings(){
       </div>
       <div class="form-group"><label>Text Size</label>
         <div class="font-size-btns">
-          <div class="font-size-btn ${settings.fontSize==='small'?'active':''}" onclick="setFontSize('small')" style="font-size:13px">Small</div>
-          <div class="font-size-btn ${settings.fontSize==='medium'?'active':''}" onclick="setFontSize('medium')" style="font-size:15px">Medium</div>
-          <div class="font-size-btn ${settings.fontSize==='large'?'active':''}" onclick="setFontSize('large')" style="font-size:17px">Large</div>
+          <button class="font-size-btn ${settings.fontSize==='small'?'active':''}" onclick="setFontSize('small')" style="font-size:13px">Small</button>
+          <button class="font-size-btn ${settings.fontSize==='medium'?'active':''}" onclick="setFontSize('medium')" style="font-size:15px">Medium</button>
+          <button class="font-size-btn ${settings.fontSize==='large'?'active':''}" onclick="setFontSize('large')" style="font-size:17px">Large</button>
         </div>
       </div>
     </div>
