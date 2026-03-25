@@ -1084,7 +1084,7 @@ function getTotals(){
     if(!s.startTime)continue;
     const d=new Date(s.startTime),ws=new Date(d);
     ws.setDate(d.getDate()-d.getDay());ws.setHours(0,0,0,0);
-    const key=ws.toISOString().slice(0,10);
+    const key=localDateStr(ws);
     weeklyHours[key]=(weeklyHours[key]||0)+(s.duration||0)/60;
   }
   const bestWeekHours=Object.values(weeklyHours).length?Math.max(0,...Object.values(weeklyHours)):0;
@@ -1097,18 +1097,22 @@ function getTotals(){
   };
 }
 
+function localDateStr(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
 function getStreak(){
   if(!sessions.length)return 0;
-  const days = new Set(sessions.map(s=>s.startTime?s.startTime.slice(0,10):null).filter(Boolean));
+  const days=new Set(sessions.map(s=>s.startTime?localDateStr(new Date(s.startTime)):null).filter(Boolean));
   let streak=0,d=new Date();d.setHours(0,0,0,0);
   // allow today or yesterday to start streak
-  const todayStr=d.toISOString().slice(0,10);
+  const todayStr=localDateStr(d);
   const yd=new Date(d);yd.setDate(yd.getDate()-1);
-  const ydStr=yd.toISOString().slice(0,10);
+  const ydStr=localDateStr(yd);
   if(!days.has(todayStr)&&!days.has(ydStr))return 0;
   let cur=days.has(todayStr)?new Date(d):new Date(yd);
   while(true){
-    const s=cur.toISOString().slice(0,10);
+    const s=localDateStr(cur);
     if(days.has(s)){streak++;cur.setDate(cur.getDate()-1);}
     else break;
   }
@@ -1422,7 +1426,7 @@ function computeEarnedMilestones(remoteSessions,reqs){
     if(!s.startTime)continue;
     const d=new Date(s.startTime),ws=new Date(d);
     ws.setDate(d.getDate()-d.getDay());ws.setHours(0,0,0,0);
-    const key=ws.toISOString().slice(0,10);
+    const key=localDateStr(ws);
     weeklyHours[key]=(weeklyHours[key]||0)+(s.duration||0)/60;
   }
   const bestWeekHours=Object.values(weeklyHours).length?Math.max(0,...Object.values(weeklyHours)):0;
@@ -1525,7 +1529,7 @@ function getPersonalRecords(){
   for(const s of sessions){
     const d=new Date(s.startTime),ws=new Date(d);
     ws.setDate(d.getDate()-d.getDay());ws.setHours(0,0,0,0);
-    const key=ws.toISOString().slice(0,10);
+    const key=localDateStr(ws);
     weeklyHours[key]=(weeklyHours[key]||0)+(s.duration||0)/60;
   }
   const bestWeek=Math.max(0,...Object.values(weeklyHours));
